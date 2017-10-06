@@ -9,7 +9,7 @@ debut <- Sys.time()
 #                                #
 ##################################
 
-setwd("~/M2/Apprentissage/Projet/GIT")
+# setwd("~/M2/Apprentissage/Projet/GIT")
 
 df <- read.csv("./Sakhir/data/test_answer_template.csv", sep=";")
 test <- read.csv("./Sakhir/data/test.csv", sep=";")
