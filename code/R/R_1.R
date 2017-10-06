@@ -1,13 +1,23 @@
 
-df <- read.csv("~/M2/Apprentissage/Projet/data-meteo/test_answer_template.csv", sep=";")
-test <- read.csv("~/M2/Apprentissage/Projet/data-meteo/test.csv", sep=";")
+debut <- Sys.time()
 
-test$tH2
+#----------------------------------------
+
+##################################
+#                                #
+#   DATA WEATHER : TEAM SAKHIR   #
+#                                #
+##################################
+
+setwd("~/M2/Apprentissage/Projet/GIT")
+
+df <- read.csv("./Sakhir/data/test_answer_template.csv", sep=";")
+test <- read.csv("./Sakhir/data/test.csv", sep=";")
+
 head(df)
 df$tH2_obs <- test$tH2
 
-write.csv2(df, file = "~/M2/Apprentissage/Projet/data-meteo/sub_1.csv", quote = F, row.names=F)
-
+# write.csv2(df, file = "./Sakhir/submission/sub_1.csv", quote = F, row.names=F)
 
 head(test)
 
