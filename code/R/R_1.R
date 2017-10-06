@@ -11,8 +11,8 @@ debut <- Sys.time()
 
 # setwd("~/M2/Apprentissage/Projet/GIT")
 
-df <- read.csv("./Sakhir/data/test_answer_template.csv", sep=";")
-test <- read.csv("./Sakhir/data/test.csv", sep=";")
+df <- read.csv("./Sakhir/data/test/test_answer_template.csv", sep=";")
+test <- read.csv("./Sakhir/data/test/test.csv", sep=";")
 
 head(df)
 df$tH2_obs <- test$tH2
