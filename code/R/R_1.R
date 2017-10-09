@@ -5,6 +5,7 @@ library(dplyr)
 library(caret)
 library(corrplot)
 library(mice)
+library(lattice)
 library(VIM)
 
 #----------------------------------------
@@ -54,6 +55,8 @@ df <- df %>% mutate(
   mois = as.factor(mois)
 )
 
+table(df$ddH10_rose4, useNA = "ifany")
+
 
 
 
@@ -81,7 +84,7 @@ summary(tempX)
 
 xyplot(tempX,tH2_obs ~ capeinsSOL0 + tH2 + tpwHPA850, pch=1, cex=1)
 densityplot(tempX)
-stripplot(tempX, pch = 1, cex = 1.2)
+# stripplot(tempX, pch = 20, cex = 1.2)
 
 completedX <- complete(tempX,2)
 
@@ -97,8 +100,8 @@ newdf <- cbind(df$date, df$insee, completedX, df$ech, df$mois)
 
 X <- as.matrix(df[,!(colnames(df) %in% c("date", "insee", "tH2_obs", "ech", "mois", "flvis1SOL0"))])
 X <- scale(X, center = T, scale = T)
-X <- as.matrix(df$tH2_obs)
-corr <- cor(X, method = "pearson", use = "complete.obs")
+Y <- as.matrix(df$tH2_obs)
+corr <- cor(cbind(Y,X), method = "pearson", use = "complete.obs")
 corrplot(corr, order = "hclust", hclust.method = "ward.D2", diag = F, type="upper")
 
 # Applying a correlation filter :
