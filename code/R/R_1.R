@@ -22,7 +22,8 @@ library(VIM)
 #----------
 
 # setwd("~/M2/Apprentissage/Projet/GIT")
-df <- read.csv("./Sakhir/data/train_1.csv", sep=";", dec = ",")
+df <- read.csv("./Sakhir/data/train/train_1.csv", sep=";", dec = ",")
+df <- read.csv("./Sakhir/data/test/test.csv", sep=";", dec = ",")
 
 str(df)
 
@@ -62,7 +63,7 @@ table(df$ddH10_rose4, useNA = "ifany")
 
 
 #----------
-# NA values -> imputation :
+# NA values :
 #----------
 
 # test de présence de valeur manquante
@@ -73,6 +74,26 @@ X <- df[,!(colnames(df) %in% c("date", "insee", "ech", "mois"))]
 
 # md.pattern(df)
 aggr_plot <- aggr(X, col=c('navyblue','red'), numbers=T, sortVars=T, labels=names(X), cex.axis=.7, gap=3, ylab=c("Histogram of missing data","Pattern"))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#----------
+# NA imputation :
+#----------
+
 marginplot(cbind(X$capeinsSOL0,X$pMER0))
 
 # Imputing the missing values
