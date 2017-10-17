@@ -22,8 +22,7 @@ library(VIM)
 #----------
 
 # setwd("~/M2/Apprentissage/Projet/GIT")
-df <- read.csv("./Sakhir/data/train/train_1.csv", sep=";", dec = ",")
-df <- read.csv("./Sakhir/data/test/test.csv", sep=";", dec = ",")
+df <- read.csv("./Sakhir/data/final_train.csv.csv", sep=";", dec = ",")
 
 str(df)
 
