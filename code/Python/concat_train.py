@@ -21,16 +21,3 @@ def import_data(path, extend, sep):
    big_frame = big_frame.replace({',': '.'}, regex=True)
    big_frame = big_frame.convert_objects(convert_numeric=True)
    return big_frame
-
-
-data = import_data("/Users/florencecanal/Desktop/M2-SID/Apprentissage_donnees_massives/data_meteo/github/data", "csv", ";")
-data_reg = data.copy()
-# Ajout de la var ecart temperature
-data_reg['ecart'] = pd.Series(data_reg["tH2_obs"]-data_reg["tH2"], index=data_reg.index)
-print(data_reg['ecart'])
-y=data_reg.corr(method='pearson')
-print(y)
-from sklearn import linear_model
-# Modele par défaut : Regression linéaire
-# Ecart de la température
-modele = linear_model.LinearRegression()
