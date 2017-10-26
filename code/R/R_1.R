@@ -24,7 +24,7 @@ library(leaps)
 #----------
 
 # setwd("~/M2/Apprentissage/Projet/GIT")
-df <- read.csv("./Sakhir/code/final_train.csv", sep=";", dec = ".")
+df <- read.csv("./Sakhir/data/final_train.csv", sep=";", dec = ".")
 
 str(df)
 
@@ -71,6 +71,7 @@ table(df$ddH10_rose4, useNA = "ifany")
 pMiss <- function(x){sum(is.na(x))/length(x)*100}
 sort(apply(df,2,pMiss))
 
+
 X <- df[,!(colnames(df) %in% c("date", "insee", "ech", "mois"))]
 
 # md.pattern(df)
@@ -80,6 +81,8 @@ aggr_plot$percent
 aggr_plot$x
 
 
+na <- 1 * data.frame(is.na(df))
+table(rowSums(na))
 
 
 
@@ -215,14 +218,47 @@ reg <- lm(delta ~ ddH10_rose4 + fllat1SOL0 + flsen1SOL0 + hcoulimSOL0 + huH2 +
             nH20 + pMER0 + tH2 + tH2_VGrad_2.100 + tH2_YGrad + vapcSOL0 + vx1H10 + as.factor(ech) + as.factor(insee), data = dfmod)
 summary(reg)
 
+#----------
+
+VALID <- read.csv("./Sakhir/data/test/test.csv", sep=";", dec = ",")
+
+df <- VALID
+str(df)
+
+delta = NA
+df <- as.data.frame(cbind(delta, df))
+df <- df[,c("delta", "insee", "ciwcH20","clwcH20","ddH10_rose4","ffH10","flir1SOL0","fllat1SOL0","flsen1SOL0","hcoulimSOL0","huH2","iwcSOL0","nbSOL0_HMoy","nH20","ntSOL0_HMoy","pMER0","rr1SOL0","rrH20","tH2","tH2_VGrad_2.100","tH2_XGrad","tH2_YGrad","tpwHPA850","ux1H10","vapcSOL0","vx1H10","ech")]
+
+df <- df %>% mutate(
+  #date = as.Date(date, "%Y-%m-%d"),
+  insee = as.factor(as.character(insee)),
+  # ddH10_rose4 = direction du vent (126 == "" -> NA ou O ?),
+  ddH10_rose4 = as.numeric(as.character(ddH10_rose4)),
+  ech = as.factor(ech),
+  mois = as.character(mois)
+) %>% select(
+  -flvis1SOL0
+  # flvis1SOL0 = 1 level ? : var = 0,
+)
+df$mois[df$mois == "jan"] = "1_jan"
+df$mois[df$mois == "février"] = "2_fev"
+df$mois[df$mois == "mars"] = "3_mar"
+df$mois[df$mois == "avril"] = "4_avr"
+df$mois[df$mois == "mai"] = "5_mai"
+df$mois[df$mois == "juin"] = "6_juin"
+df$mois[df$mois == "juillet"] = "7_juil"
+df$mois[df$mois == "août"] = "8_aout"
+df$mois[df$mois == "septembre"] = "9_sept"
+df$mois[df$mois == "octobre"] = "10_oct"
+df$mois[df$mois == "novembre"] = "11_nov"
+df$mois[df$mois == "décembre"] = "12_dec"
+df <- df %>% mutate(
+  mois = as.factor(mois)
+)
 
 
 
-VALID <- read.csv("./Sakhir/data/test/test.csv", sep=";")
-
-
-
-
+resu <- predict(reg, df)
 
 
 
