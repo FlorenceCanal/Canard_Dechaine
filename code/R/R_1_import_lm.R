@@ -1,4 +1,3 @@
-
 debut <- Sys.time()
 
 library(dplyr)
@@ -9,6 +8,10 @@ library(lattice)
 library(VIM)
 library(car)
 library(leaps)
+library(DAAG)
+library(randomForest)
+
+setwd("C:/Users/mbriens/Documents/M2/Apprentissage/Projet/GIT")
 
 #----------------------------------------
 
@@ -23,21 +26,17 @@ library(leaps)
 # Loading and rearrange data :
 #----------
 
-# setwd("~/M2/Apprentissage/Projet/GIT")
 df <- read.csv("./Sakhir/data/final_train.csv", sep=";", dec = ".")
-
-str(df)
+# str(df)
 
 df <- df %>% mutate(
   date = as.Date(date, "%Y-%m-%d"),
   insee = as.factor(as.character(insee)),
-  # ddH10_rose4 = direction du vent (126 == "" -> NA ou O ?),
   ddH10_rose4 = as.numeric(as.character(ddH10_rose4)),
-  ech = as.factor(ech),
+  ech = as.numeric(ech),
   mois = as.character(mois)
 ) %>% select(
-  -flvis1SOL0
-  # flvis1SOL0 = 1 level ? : var = 0,
+  -capeinsSOL0
 )
 
 df$mois[df$mois == "jan"] = "1_jan"
@@ -57,17 +56,24 @@ df <- df %>% mutate(
   mois = as.factor(mois)
 )
 
-table(df$ddH10_rose4, useNA = "ifany")
+str(df)
+
+# prop.table(table(df$ddH10_rose4, useNA = "ifany"))*100
+
+
+
+
+
 
 
 
 
 
 #----------
-# NA values :
+# NA values (dealing with blocs) :
 #----------
 
-# test de présence de valeur manquante
+# test de pr?sence de valeur manquante
 pMiss <- function(x){sum(is.na(x))/length(x)*100}
 sort(apply(df,2,pMiss))
 
@@ -78,43 +84,23 @@ X <- df[,!(colnames(df) %in% c("date", "insee", "ech", "mois"))]
 aggr_plot <- aggr(X, col=c('navyblue','red'), numbers=T, sortVars=T, labels=names(X), cex.axis=.7, gap=3, ylab=c("Histogram of missing data","Pattern"))
 summary(aggr_plot)
 aggr_plot$percent
-aggr_plot$x
+# aggr_plot$x
 
+nb_na <- 1 * data.frame(is.na(df))
+table(rowSums(nb_na))
+nb_rows = nrow(df)
 
-na <- 1 * data.frame(is.na(df))
-table(rowSums(na))
+#df = df[rowSums(na) < 12,]
+#print(paste("Nombre de lignes supprim?es (trop de manquants) =", nb_rows - nrow(df)))
+#print(paste("Nombre de lignes restantes =", nrow(df)))
 
+#nb_na <- 1 * data.frame(is.na(df))
+#table(rowSums(nb_na))
 
+#aggr_plot <- aggr(df, col=c('navyblue','red'), numbers=F, sortVars=T, labels=names(df),
+#                  cex.axis=.7, gap=3, ylab=c("Histogram of missing data","Pattern"))
 
-
-
-
-
-
-
-
-
-
-#----------
-# NA imputation :
-#----------
-
-marginplot(cbind(X$capeinsSOL0,X$pMER0))
-
-# Imputing the missing values
-#methods(mice)
-tempX <- mice(X,m=5,maxit=50,meth='pmm',seed=500)
-summary(tempX)
-# tempX$imp$tH2
-# tempX$meth
-
-xyplot(tempX,tH2_obs ~ capeinsSOL0 + tH2 + tpwHPA850, pch=1, cex=1)
-densityplot(tempX)
-# stripplot(tempX, pch = 20, cex = 1.2)
-
-completedX <- complete(tempX,2)
-
-newdf <- cbind(df$date, df$insee, completedX, df$ech, df$mois)
+#write.table(df, file = "./new_df.csv", row.names = F, sep=";", dec = ".", quote = F)
 
 
 
@@ -146,15 +132,12 @@ corrplot(corr, order = "hclust", hclust.method = "ward.D2", diag = F, type="uppe
 #----------
 # 1st submission -> predictions without any correction :
 #----------
-df <- read.csv("./Sakhir/data/test/test_answer_template.csv", sep=";")
 test <- read.csv("./Sakhir/data/test/test.csv", sep=";")
 
-head(df)
-df$tH2_obs <- test$tH2
+head(test)
+test$tH2_obs <- test$tH2
 
 # write.csv2(df, file = "./Sakhir/submission/sub_1.csv", quote = F, row.names=F)
-
-head(test)
 
 
 
@@ -182,41 +165,65 @@ test <- df[test,]
 df <- learn
 
 df$tH2[is.na(df$tH2)] <- mean(df$tH2, na.rm = T)
-delta <- df$tH2_obs-df$tH2
-X <- as.matrix(cbind(df[,!(colnames(df) %in% c("date", "insee", "tH2", "tH2_obs", "ech", "mois", "flvis1SOL0"))], delta))
-X <- scale(X, center = T, scale = T)
-corr <- cor(cbind(X), method = "pearson", use = "complete.obs")
-corrplot(corr, order = "hclust", hclust.method = "ward.D2", diag = F, type="upper")
+# ecart <- df$tH2_obs-df$tH2
 
+dfmod <- df[,c("ecart", "insee", "ciwcH20", "clwcH20", "ddH10_rose4", "ffH10", "flir1SOL0", "fllat1SOL0", "flsen1SOL0", "hcoulimSOL0", "huH2", "iwcSOL0", "nbSOL0_HMoy", "nH20", "ntSOL0_HMoy", "pMER0", "rr1SOL0", "rrH20", "tH2", "tH2_VGrad_2.100", "tH2_XGrad", "tH2_YGrad", "tpwHPA850", "ux1H10", "vapcSOL0", "vx1H10", "ech")]
+#colnames(dfmod)[1] <- "ecart"
 
-dfmod <- as.data.frame(cbind(delta, df$insee, df$ciwcH20, df$clwcH20, df$ddH10_rose4, df$ffH10, df$flir1SOL0, df$fllat1SOL0, df$flsen1SOL0, df$hcoulimSOL0, df$huH2, df$iwcSOL0, df$nbSOL0_HMoy, df$nH20, df$ntSOL0_HMoy, df$pMER0, df$rr1SOL0, df$rrH20, df$tH2, df$tH2_VGrad_2.100, df$tH2_XGrad, df$tH2_YGrad, df$tpwHPA850, df$ux1H10, df$vapcSOL0, df$vx1H10, df$ech))
-colnames(dfmod) <- c("delta", "insee", "ciwcH20", "clwcH20", "ddH10_rose4", "ffH10", "flir1SOL0", "fllat1SOL0", "flsen1SOL0", "hcoulimSOL0", "huH2", "iwcSOL0", "nbSOL0_HMoy", "nH20", "ntSOL0_HMoy", "pMER0", "rr1SOL0", "rrH20", "tH2", "tH2_VGrad_2.100", "tH2_XGrad", "tH2_YGrad", "tpwHPA850", "ux1H10", "vapcSOL0", "vx1H10", "ech")
-
-stepwise <- regsubsets(delta ~ . , data = dfmod, method = "seqrep", nbest=1) # method = "forward" / "backward"
+stepwise <- regsubsets(ecart ~ . , data = dfmod, method = "seqrep", nbest=1) # method = "forward" / "backward"
 par(mfrow=c(1,2))
 plot(stepwise, scale = "adjr2", main = "Stepwise Selection\nAIC")
 plot(stepwise, scale = "bic", main = "Stepwise Selection\nBIC")
 par(mfrow=c(1,1))
 
-reg <- lm(delta ~ ., data = dfmod)
+reg <- lm(ecart ~ ., data = dfmod)
 summary(reg)
 
-reg <- lm(delta ~ clwcH20 + ddH10_rose4 + ffH10 + fllat1SOL0 + flsen1SOL0 + hcoulimSOL0 + huH2 +
-            nH20 + pMER0 + tH2 + tH2_VGrad_2.100 + tH2_YGrad + tpwHPA850 + vapcSOL0 + vx1H10 + ech, data = dfmod)
+reg <- lm(ecart ~ clwcH20 + ddH10_rose4 + ffH10 + fllat1SOL0 + flsen1SOL0 + hcoulimSOL0 + huH2 +
+            nH20 + pMER0 + tH2 + tH2_VGrad_2.100 + tH2_YGrad + tpwHPA850 + vapcSOL0 + vx1H10 + ech + insee, data = dfmod)
 summary(reg)
 
-dfmod2 <- dfmod[,c("delta", "clwcH20", "ddH10_rose4", "ffH10", "fllat1SOL0", "flsen1SOL0", "hcoulimSOL0", "huH2", "nH20", "pMER0", "tH2", "tH2_VGrad_2.100", "tH2_YGrad", "tpwHPA850", "vapcSOL0", "vx1H10")]#, "ech")]
+dfmod2 <- dfmod[,c("ecart", "clwcH20", "ddH10_rose4", "ffH10", "fllat1SOL0", "flsen1SOL0", "hcoulimSOL0", "huH2", "nH20", "pMER0", "tH2", "tH2_VGrad_2.100", "tH2_YGrad", "tpwHPA850", "vapcSOL0", "vx1H10", "ech", "insee")]
 
-X <- as.matrix(dfmod2)
-X <- scale(X, center = T, scale = T)
-corr <- cor(X, method = "pearson", use = "complete.obs")
-corrplot(corr, order = "hclust", hclust.method = "ward.D2", diag = F, type="upper")
-
-
-
-reg <- lm(delta ~ ddH10_rose4 + fllat1SOL0 + flsen1SOL0 + hcoulimSOL0 + huH2 +
-            nH20 + pMER0 + tH2 + tH2_VGrad_2.100 + tH2_YGrad + vapcSOL0 + vx1H10 + as.factor(ech) + as.factor(insee), data = dfmod)
+reg <- lm(ecart ~ clwcH20 + factor(ddH10_rose4) + ffH10 + fllat1SOL0 + flsen1SOL0 +
+            hcoulimSOL0 + huH2 + nH20 + tH2 + tH2_VGrad_2.100 + tH2_YGrad +
+            tpwHPA850 + vapcSOL0 + vx1H10 + ech + insee, data = dfmod2)
 summary(reg)
+
+# X <- as.matrix(dfmod2[!(colnames(dfmod2) %in% "insee")])
+# X <- scale(X, center = T, scale = T)
+# corr <- cor(X, method = "pearson", use = "complete.obs")
+# corrplot(corr, order = "hclust", hclust.method = "ward.D2", diag = F, type="upper")
+# 
+# reg <- lm(ecart ~ factor(ddH10_rose4) + fllat1SOL0 + hcoulimSOL0 + huH2 +
+#             tH2 + tH2_VGrad_2.100 + tH2_YGrad +
+#             ech + insee, data = dfmod2)
+# summary(reg)
+
+
+
+
+
+
+# reg <- lm.ridge(ecart ~ ddH10_rose4 + fllat1SOL0 + flsen1SOL0 + hcoulimSOL0 + huH2 +
+#             nH20 + pMER0 + tH2 + tH2_VGrad_2.100 + tH2_YGrad + vapcSOL0 + vx1H10 +
+#             ech + insee, data = dfmod)
+# summary(reg)
+
+
+table(is.na(test$ecart))
+test$ecart[is.na(test$ecart)] <- 0
+
+# NA PROBLEM -> imputation
+pred = predict.lm(reg, test)
+pred[is.na(pred)] = 0
+RMSE = mean((test$ecart - pred) ^2)
+print(RMSE)
+
+# RMSE = 1.838155
+
+
+
 
 #----------
 
@@ -225,16 +232,15 @@ VALID <- read.csv("./Sakhir/data/test/test.csv", sep=";", dec = ",")
 df <- VALID
 str(df)
 
-delta = NA
-df <- as.data.frame(cbind(delta, df))
-df <- df[,c("delta", "insee", "ciwcH20","clwcH20","ddH10_rose4","ffH10","flir1SOL0","fllat1SOL0","flsen1SOL0","hcoulimSOL0","huH2","iwcSOL0","nbSOL0_HMoy","nH20","ntSOL0_HMoy","pMER0","rr1SOL0","rrH20","tH2","tH2_VGrad_2.100","tH2_XGrad","tH2_YGrad","tpwHPA850","ux1H10","vapcSOL0","vx1H10","ech")]
+ecart = NA
+df <- as.data.frame(cbind(ecart, df))
 
 df <- df %>% mutate(
   #date = as.Date(date, "%Y-%m-%d"),
   insee = as.factor(as.character(insee)),
   # ddH10_rose4 = direction du vent (126 == "" -> NA ou O ?),
   ddH10_rose4 = as.numeric(as.character(ddH10_rose4)),
-  ech = as.factor(ech),
+  ech = as.numeric(ech),
   mois = as.character(mois)
 ) %>% select(
   -flvis1SOL0
@@ -256,13 +262,18 @@ df <- df %>% mutate(
   mois = as.factor(mois)
 )
 
-
-
 resu <- predict(reg, df)
 
+tH2_obs = df$tH2 + resu
+df$tH2_obs = tH2_obs
 
+submiss <- df %>% select(
+  date, insee, ech, tH2_obs
+)
 
+head(submiss)
 
+# write.table(submiss, file = "./new_sub.csv", row.names = F, sep=";", dec = ".", quote = F)
 
 
 

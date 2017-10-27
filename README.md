@@ -1,18 +1,19 @@
 # Sakhir
 
-## Dossier Data
-Ce dossier contient les 36 fichiers csv d'entraînements.
+### Dossier 'Data'
+Ce dossier contient 2 dossiers, et 1 fichier :
 
-## Dossier Submission
-Ce dossier contient les csv des soumissions au concours Grosses Data.
+* **Test** : Contient les données de test, ainsi que le format de soumission des données.
+* **Train** : Contient les données d'apprentissages, réparties en 36 fichiers .csv (1 par échéance)
+* **final_train.csv** : fichier d'apprentissage à utilisé (aggrégé, nettoyé, ...)
 
-## Dossiers code_R et code_python
-Ces dossiers contiennent respectivement les codes R et python de machine learning. 
-De plus, il contient le fichier final_train.csv : ensemble des données d'entraînements nettoyés
+### Dossier 'Code'
+Ce dossier contient les codes R et python réalisés dans le cadre de ce projet. Il contient également des codes au format Notebook.
 
-## Dossier Submission
-Ce dossier contient les csv soumis au concours
+### Dossier Doc
+Ce dossier contient :
+* Une documentation sur les soumissions, **A METTRE A JOUR IMPERATIVEMENT**, qui détaille les méthodes implémentées qui ont conduit à chacun des fichiers soumis.
+* Une documentation rassemblant des imformationsgénérales à propos du projet.
 
-## Dossier Doc
-Fichier d'informations sur les soumissions. A METTRE A JOUR IMPERATIVEMENT
-Fichier d'informations sur le projet.
+### Dossier 'Submission'
+Ce dossier contient les fichiers .csv correspondant aux soumissions effectuées.
