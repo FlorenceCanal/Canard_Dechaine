@@ -3,7 +3,7 @@
 import os
 import math
 import tensorflow as tf
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 from __future__ import absolute_import
 from __future__ import division
@@ -23,7 +23,7 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import mean_squared_error
 from sklearn.ensemble import IsolationForest
 
-nb_steps = 4000
+nb_steps = 3000
 
 
 
@@ -169,7 +169,7 @@ testing_set.head()
 #----------
 
 # Model
-#tf.logging.set_verbosity(tf.logging.ERROR)
+tf.logging.set_verbosity(tf.logging.ERROR)
 
 regressor1 = tf.contrib.learn.DNNRegressor(feature_columns=feature_cols,
                                           activation_fn = tf.nn.relu,
@@ -196,8 +196,7 @@ regressor1.fit(input_fn=lambda: input_fn(training_set), steps=nb_steps)
 ev = regressor1.evaluate(input_fn=lambda: input_fn(testing_set), steps=1)
 
 # Display the score on the testing set
-# ~ 1.125 (3000 steps)
-# (1.0705 with 'ech')
+# 1.048295
 loss_score1 = ev["loss"]
 print("Final Loss on the testing set: {0:f}".format(loss_score1))
 
@@ -213,6 +212,7 @@ print('prportion of training set according to complete dataset = ' +
 y = regressor1.predict(input_fn=lambda: input_fn(testing_set))
 predictions = list(itertools.islice(y, testing_set.shape[0]))
 predictions = pd.DataFrame(predictions)
+predictions = np.array(predictions, dtype=pd.Series)
 #predictions = scale_y_train.inverse_transform(np.array(predictions).reshape(len(predictions),1))
 #reality = pd.DataFrame(scale_train.inverse_transform(testing_set), columns = [COLUMNS]).ecart
 reality = testing_set.ecart
@@ -229,7 +229,7 @@ plt.plot([reality.min(), reality.max()], [reality.min(), reality.max()], 'k--', 
 plt.show()
 
 rmse = sqrt(mean_squared_error(reality, predictions))
-# 1.0609
+# 1.023862964
 print('RMSE = ' + str(rmse))
 
 
@@ -261,7 +261,7 @@ plt.plot([reality.min(), reality.max()], [reality.min(), reality.max()], 'k--', 
 plt.show()
 
 rmse = sqrt(mean_squared_error(reality, predictions))
-# 1.114
+# 1.10012978
 print('RMSE = ' + str(rmse))
 
 
@@ -281,14 +281,19 @@ data_test.fillna(0,inplace=True)
 th2 = np.array(data_test['tH2'], dtype=pd.Series)
 
 m_test = np.matrix(data_test)
-data_test = pd.DataFrame(scale_x.transform(m_test), columns = col_train_bis)
+
+scale_test = MinMaxScaler()
+scale_test.fit(m_test)
+data_test = pd.DataFrame(scale_test.transform(m_test), columns = col_train_bis)
+#data_test = pd.DataFrame(scale_x.transform(m_test), columns = col_train_bis)
 data_test['ecart'] = np.zeros(data_test.shape[0])
 
 y = regressor1.predict(input_fn=lambda: input_fn(data_test))
 predictions = list(itertools.islice(y, data_test.shape[0]))
 predictions = pd.DataFrame(predictions)
+predictions = np.array(predictions, dtype=pd.Series)
 #predictions = scale_y_train.inverse_transform(np.array(predictions).reshape(len(predictions),1))
-#predictions = predictions[:,0]
+predictions = predictions[:,0]
 plt.hist(predictions)
 plt.show()
 
@@ -637,7 +642,7 @@ plt.title('Predictions x Reality on dataset Test')
 plt.plot([reality.min(), reality.max()], [reality.min(), reality.max()], 'k--', lw=4)
 plt.show()
 rmse = sqrt(mean_squared_error(reality, predictions))
-# 1.01477401
+# RMSE = 0.9883072269310472
 print('RMSE = ' + str(rmse))
 
 
@@ -661,7 +666,7 @@ plt.title('Predictions x Reality on dataset Test')
 plt.plot([reality.min(), reality.max()], [reality.min(), reality.max()], 'k--', lw=4)
 plt.show()
 rmse = sqrt(mean_squared_error(reality, predictions))
-# 1.1416516
+# RMSE = 1.0572891488237737
 print('RMSE = ' + str(rmse))
 
 

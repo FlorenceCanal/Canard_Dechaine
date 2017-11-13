@@ -27,6 +27,8 @@ setwd("C:/Users/mbriens/Documents/M2/Apprentissage/Projet/GIT")
 #----------
 
 df <- read.csv("./Sakhir/data/final_train.csv", sep=";", dec = ".")
+#df <- read.csv("./Sakhir/data/train_imputNA.csv", sep=";", dec = ".")
+
 # str(df)
 
 df <- df %>% mutate(
@@ -195,10 +197,10 @@ summary(reg)
 # corr <- cor(X, method = "pearson", use = "complete.obs")
 # corrplot(corr, order = "hclust", hclust.method = "ward.D2", diag = F, type="upper")
 # 
-# reg <- lm(ecart ~ factor(ddH10_rose4) + fllat1SOL0 + hcoulimSOL0 + huH2 +
-#             tH2 + tH2_VGrad_2.100 + tH2_YGrad +
-#             ech + insee, data = dfmod2)
-# summary(reg)
+reg <- lm(ecart ~ factor(ddH10_rose4) + fllat1SOL0 + hcoulimSOL0 + huH2 +
+            tH2 + tH2_VGrad_2.100 + tH2_YGrad +
+            ech + insee, data = dfmod2)
+summary(reg)
 
 
 
@@ -220,9 +222,9 @@ pred[is.na(pred)] = 0
 RMSE = mean((test$ecart - pred) ^2)
 print(RMSE)
 
-# RMSE = 1.838155
+# RMSE1 = 1.838155
 
-
+# RMSE2 = 1.57
 
 
 #----------
@@ -284,4 +286,7 @@ head(submiss)
 #----------------------------------------
 fin <- Sys.time()
 print(fin-debut)
+
+
+
 
