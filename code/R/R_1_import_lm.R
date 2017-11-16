@@ -219,6 +219,10 @@ test$ecart[is.na(test$ecart)] <- 0
 # NA PROBLEM -> imputation
 pred = predict.lm(reg, test)
 pred[is.na(pred)] = 0
+
+plot(pred, test$ecart)
+abline(a=0, b=1)
+
 RMSE = mean((test$ecart - pred) ^2)
 print(RMSE)
 
@@ -265,6 +269,8 @@ df <- df %>% mutate(
 )
 
 resu <- predict(reg, df)
+
+resu[is.na(resu)] = 0
 
 tH2_obs = df$tH2 + resu
 df$tH2_obs = tH2_obs

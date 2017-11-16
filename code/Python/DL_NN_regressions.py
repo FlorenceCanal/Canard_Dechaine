@@ -183,7 +183,7 @@ plt.show()
 
 X_filled = pd.read_csv("C:/Users/mbriens/Documents/M2/Apprentissage/Projet/GIT/Sakhir/data/test/test_answer_template.csv", sep=";")
 X_filled = X_filled.drop('tH2_obs', 1)
-predict = predict[:,0]
+#predict = predict[:,0]
 X_filled['tH2_obs'] = pd.Series(th2 + predict, index=data_test.index)
 plt.hist(X_filled['tH2_obs'])
 plt.show()
@@ -202,12 +202,12 @@ X_filled = X_filled.replace({'\.': ','}, regex=True)
 #----------
 
 
-model = Sequential()
-model.add(Dense(64, input_dim=22, activation='relu'))
-model.add(Dense(1))
-model.compile(optimizer='rmsprop', loss='mse', metrics=['mae']) # optimizer=sgd
-model.summary()
-model.fit(X_train, y_train, epochs=100, verbose=1)
+#model = Sequential()
+#model.add(Dense(64, input_dim=22, activation='relu'))
+#model.add(Dense(1))
+#model.compile(optimizer='rmsprop', loss='mse', metrics=['mae']) # optimizer=sgd
+#model.summary()
+#model.fit(X_train, y_train, epochs=100, verbose=1)
 
 
 seed = 7
@@ -224,7 +224,7 @@ model.add(Dense(128, activation='relu'))
 model.add(Dense(150, activation='relu'))
 model.add(Dense(1))
 model.compile(optimizer='rmsprop', loss='mse', metrics=['mae']) # optimizer=sgd
-model.fit(X_train, y_train, epochs=100, verbose=1)
+model.fit(X_train, y_train, epochs=200, verbose=1)
 
 
 reality = y_test
@@ -237,7 +237,7 @@ plt.title('Predictions x Reality on dataset Test')
 plt.plot([reality.min(), reality.max()], [reality.min(), reality.max()], 'k--', lw=4)
 plt.show()
 rmse = sqrt(mean_squared_error(reality, predict))
-# 1.22
+# 1.02
 print('RMSE = ' + str(rmse))
 
 reality = y_valid
@@ -250,7 +250,7 @@ plt.title('Predictions x Reality on dataset Test')
 plt.plot([reality.min(), reality.max()], [reality.min(), reality.max()], 'k--', lw=4)
 plt.show()
 rmse = sqrt(mean_squared_error(reality, predict))
-# 1.08
+# 1.00
 print('RMSE = ' + str(rmse))
 
 
@@ -278,13 +278,14 @@ data_test.fillna(0,inplace=True)
 th2 = np.array(data_test['tH2'], dtype=pd.Series)
 m_test = np.matrix(data_test)
 
-scale_test = StandardScaler()
-scale_test.fit(m_test)
-data_test = pd.DataFrame(scale_test.transform(m_test), columns = col_X)
-#data_test = pd.DataFrame(scale_x.transform(m_test), columns = col_X)
+#scale_test = StandardScaler()
+#scale_test.fit(m_test)
+#data_test = pd.DataFrame(scale_test.transform(m_test), columns = col_X)
+data_test = pd.DataFrame(scale_x.transform(m_test), columns = col_X)
+data_test = np.array(data_test)
 
 predict = model.predict(data_test)
-predict[abs(predict) > 8] = 0
+#predict[abs(predict) > 8] = 0
 
 plt.hist(predict)
 plt.show()

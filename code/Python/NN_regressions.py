@@ -169,11 +169,11 @@ testing_set.head()
 #----------
 
 # Model
-tf.logging.set_verbosity(tf.logging.ERROR)
+#tf.logging.set_verbosity(tf.logging.ERROR)
 
 regressor1 = tf.contrib.learn.DNNRegressor(feature_columns=feature_cols,
                                           activation_fn = tf.nn.relu,
-                                          hidden_units=[300, 150, 50, 25, 12]#,
+                                          hidden_units=[200, 50]#, 25, 12]#,
                                           #optimizer = tf.train.GradientDescentOptimizer( learning_rate= 0.1 )
                                           )
 
@@ -196,7 +196,7 @@ regressor1.fit(input_fn=lambda: input_fn(training_set), steps=nb_steps)
 ev = regressor1.evaluate(input_fn=lambda: input_fn(testing_set), steps=1)
 
 # Display the score on the testing set
-# 1.048295
+# 1.1541004
 loss_score1 = ev["loss"]
 print("Final Loss on the testing set: {0:f}".format(loss_score1))
 
@@ -229,7 +229,7 @@ plt.plot([reality.min(), reality.max()], [reality.min(), reality.max()], 'k--', 
 plt.show()
 
 rmse = sqrt(mean_squared_error(reality, predictions))
-# 1.023862964
+# 1.0742908972192025
 print('RMSE = ' + str(rmse))
 
 
@@ -261,7 +261,7 @@ plt.plot([reality.min(), reality.max()], [reality.min(), reality.max()], 'k--', 
 plt.show()
 
 rmse = sqrt(mean_squared_error(reality, predictions))
-# 1.10012978
+# 1.1333419253504484
 print('RMSE = ' + str(rmse))
 
 
