@@ -204,9 +204,6 @@ summary(reg)
 
 
 
-
-
-
 # reg <- lm.ridge(ecart ~ ddH10_rose4 + fllat1SOL0 + flsen1SOL0 + hcoulimSOL0 + huH2 +
 #             nH20 + pMER0 + tH2 + tH2_VGrad_2.100 + tH2_YGrad + vapcSOL0 + vx1H10 +
 #             ech + insee, data = dfmod)
@@ -229,6 +226,23 @@ print(RMSE)
 # RMSE1 = 1.838155
 
 # RMSE2 = 1.57
+
+
+# BEST (if no NA)
+
+model <- lme(ecart ~ ddH10_rose4 + fllat1SOL0 + hcoulimSOL0 + tH2_VGrad_2.100 + tH2_YGrad +
+               ech*insee + tH2 + huH2, data=df, random=~1|date/insee, na.action=na.exclude)
+anova(model)
+
+pred = predict(model, test, na.action = na.pass)
+pred[is.na(pred)] = 0
+plot(pred, test$ecart)
+abline(a=0, b=1)
+RMSE = mean((test$ecart - pred) ^2)
+print(RMSE)
+
+
+
 
 
 #----------

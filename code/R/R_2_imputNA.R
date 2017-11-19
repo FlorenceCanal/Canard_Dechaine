@@ -1,5 +1,6 @@
 debut <- Sys.time()
 
+library(MASS)
 library(dplyr)
 library(caret)
 library(corrplot)
@@ -28,53 +29,51 @@ setwd("C:/Users/mbriens/Documents/M2/Apprentissage/Projet/GIT")
 
 df <- read.csv("./Sakhir/data/final_train.csv", sep=";", dec = ".")
 df$ddH10_rose4 = as.factor(as.numeric(as.character(df$ddH10_rose4)))
-tH2_obs = df$tH2_obs
-df <- df[,!(colnames(df) %in% c("tH2_obs"))]
-df$tH2_obs = tH2_obs
-df$test = FALSE
+# tH2_obs = df$tH2_obs
+# df <- df[,!(colnames(df) %in% c("tH2_obs"))]
+# df$tH2_obs = tH2_obs
+# df$test = FALSE
 
-test <- read.csv("./Sakhir/data/test/test.csv", sep=";", dec=",")
-test$ddH10_rose4 = as.factor(as.numeric(as.character(test$ddH10_rose4)))
-test$flvis1SOL0 = as.character(test$flvis1SOL0)
-test$flvis1SOL0 = gsub(",", ".", test$flvis1SOL0)
-test$flvis1SOL0 = as.numeric(test$flvis1SOL0)
-test$ecart = 0
-test$tH2_obs = 0
-test$test = TRUE
+# test <- read.csv("./Sakhir/data/test/test.csv", sep=";", dec=",")
+# test$ddH10_rose4 = as.factor(as.numeric(as.character(test$ddH10_rose4)))
+# test$flvis1SOL0 = as.character(test$flvis1SOL0)
+# test$flvis1SOL0 = gsub(",", ".", test$flvis1SOL0)
+# test$flvis1SOL0 = as.numeric(test$flvis1SOL0)
+# test$ecart = 0
+# test$tH2_obs = 0
+# test$test = TRUE
 
-df <- rbind(df, test)
+# df <- as.data.frame(rbind(df, test))
 # str(df)
 
 df <- df %>% mutate(
   date = as.Date(date, "%Y-%m-%d"),
   insee = as.factor(as.character(insee)),
   ddH10_rose4 = as.factor(as.character(ddH10_rose4)),
-  ech = as.numeric(ech),
-  mois = as.character(mois)
+  ech = as.numeric(ech)
 ) %>% select(
-  -capeinsSOL0
+  -capeinsSOL0, -mois
 )
 
-# df$mois[df$mois == "jan"] = "1_jan"
-# df$mois[df$mois == "février"] = "2_fev"
-# df$mois[df$mois == "mars"] = "3_mar"
-# df$mois[df$mois == "avril"] = "4_avr"
-# df$mois[df$mois == "mai"] = "5_mai"
-# df$mois[df$mois == "juin"] = "6_juin"
-# df$mois[df$mois == "juillet"] = "7_juil"
-# df$mois[df$mois == "août"] = "8_aout"
-# df$mois[df$mois == "septembre"] = "9_sept"
-# df$mois[df$mois == "octobre"] = "10_oct"
-# df$mois[df$mois == "novembre"] = "11_nov"
-# df$mois[df$mois == "décembre"] = "12_dec"
-# 
-# df <- df %>% mutate(
-#   mois = as.factor(mois)
-# )
 
-str(df)
+stepwise <- regsubsets(ecart ~ . -tH2_obs, data = df, method = "seqrep", nbest=1) # method = "forward" / "backward"
+par(mfrow=c(1,2))
+plot(stepwise, scale = "adjr2", main = "Stepwise Selection\nAIC")
+plot(stepwise, scale = "bic", main = "Stepwise Selection\nBIC")
+par(mfrow=c(1,1))
 
-# prop.table(table(df$ddH10_rose4, useNA = "ifany"))*100
+
+# select model
+# select useful var
+# impute only needed var
+
+# ...
+
+
+
+
+
+
 
 
 
@@ -82,9 +81,9 @@ str(df)
 # Variance filter :
 #----------
 
-for(i in seq(ncol(df))) {
+for(i in seq(2, ncol(df))) {
   print(colnames(df)[i])
-  print(var(df[,i], na.rm = T))
+  print(sd(as.numeric(as.character(df[,i])), na.rm = T)^2)
 }
 
 
@@ -112,7 +111,19 @@ summary(aggr_plot)
 aggr_plot$percent
 
 # Correlation
-X <- scale(X, center = F, scale = T)
+X <- scale(X, center = T, scale = T)
+# scX <- X
+# scale <- matrix(nrow = 2, ncol = ncol(X))
+# colnames(scale) = colnames(X)
+# rownames(scale) = c("sd", "avg")
+# for (i in seq(ncol(X))){
+#   scale[1,i] = sd(X[,i], na.rm = T)
+#   scale[2,i] = mean(X[,i], na.rm = T)
+#   res = (X[,i]-scale[2,i])/scale[1,i]
+#   scX[,i] <- res
+# }
+# X <- scX
+
 corr <- cor(X, method = "pearson", use = "complete.obs")
 corrplot(corr, order = "hclust", hclust.method = "ward.D2", diag = F, type="upper")
 
@@ -126,10 +137,10 @@ X <- as.data.frame(X)
 X <- cbind(df$insee, df$ddH10_rose4, X, df$ecart)
 str(X)
 
-tempdf <- mice(X, m=5, maxit=50, meth='pmm', seed=500) # cart
-# summary(tempdf)
+tempdf <- mice(X, m=5, maxit=50, meth="pmm" , seed=500) # cart
+summary(tempdf)
 
-# tempdf$imp$tH2
+# tempdf$imp$pMER0
 # tempdf$meth
 
 #xyplot(tempdf,tH2_obs ~ capeinsSOL0 + tH2 + tpwHPA850, pch=1, cex=1)
@@ -140,53 +151,18 @@ completedf <- complete(tempdf,2)
 
 
 
-newdf <- cbind(df$date, completedf, df$test)
+newdf <- cbind(df$date, completedf)#, df$test)
 colnames(newdf) <- c('date', 'insee', 'ddH10_rose4', 'tH2_obs', 'ffH10', 'flir1SOL0',
                      'fllat1SOL0', 'flsen1SOL0', 'flvis1SOL0', 'hcoulimSOL0', 'huH2',
                      'iwcSOL0', 'nbSOL0_HMoy', 'ntSOL0_HMoy', 'pMER0', 'rr1SOL0', 'rrH20',
                      'tH2', 'tH2_VGrad_2.100', 'tH2_XGrad', 'tH2_YGrad', 'tpwHPA850',
-                     'ux1H10', 'vapcSOL0', 'vx1H10', 'ech', 'ecart', 'test')
+                     'ux1H10', 'vapcSOL0', 'vx1H10', 'ech', 'ecart')#, 'test')
 
-# write.table(newdf, "./Sakhir/data/train_imputNA.csv", sep=";", dec = ".", row.names = F, quote = F)
+write.table(newdf, "./Sakhir/data/train_imputNA.csv", sep=";", dec = ".", row.names = F, quote = F)
 
-df <- newdf
-
-
+df <- as.data.frame(newdf)
 
 
-#----------
-# Check NA on TEST set :
-#----------
-
-# test <- read.csv("./Sakhir/data/test/test.csv", sep=";", dec=",")
-# head(test)
-
-# NA imputation :
-pMiss <- function(x){sum(is.na(x))/length(x)*100}
-sort(apply(df,2,pMiss))
-
-df$insee1 = FALSE
-df$insee1[df$insee == 31069001] = TRUE
-df$insee2 = FALSE
-df$insee2[df$insee == 33281001] = TRUE
-df$insee3 = FALSE
-df$insee3[df$insee == 35281001] = TRUE
-df$insee4 = FALSE
-df$insee4[df$insee == 59343001] = TRUE
-df$insee5 = FALSE
-df$insee5[df$insee == 6088001] = TRUE
-df$insee6 = FALSE
-df$insee6[df$insee == 67124001] = TRUE
-df$insee7 = FALSE
-df$insee7[df$insee == 75114001] = TRUE
-df<- df[,!(colnames(df) %in% c("insee"))]
-
-valid <- df[df$test == T,]
-valid <- valid[,!(colnames(valid) %in% c("test", "date", "tH2_obs"))]
-valid <- valid[,!(colnames(valid) %in% "ecart")]
-
-df <- df[df$test == F,]
-df <- df[,!(colnames(df) %in% c("test", "date", "tH2_obs"))]
 
 
 
@@ -194,29 +170,23 @@ df <- df[,!(colnames(df) %in% c("test", "date", "tH2_obs"))]
 # Check better imputation with base linear regression model :
 #----------
 
-# df <- read.csv("./Sakhir/data/train_imputNA.csv", sep=";", dec = ".")
-# 
-# df <- df %>% mutate(
-#   insee = as.factor(as.character(insee)),
-#   ddH10_rose4 = as.factor(as.character(ddH10_rose4)),
-#   ech = as.numeric(ech)
-# ) %>% select(
-#   -date,
-#   -tH2_obs
-# )
-# 
-# str(df)
-# 
-# # NA values ?
-# pMiss <- function(x){sum(is.na(x))/length(x)*100}
-# sort(apply(df,2,pMiss))
-# 
-# # Variance ?
-# for(i in seq(ncol(df))) {
-#   print(colnames(df)[i])
-#   print(var(df[,i], na.rm = T))
-# }
+df <- read.csv("./Sakhir/data/train_imputNA.csv", sep=";", dec = ".")
 
+df <- df %>% mutate(
+  insee = as.factor(as.character(insee)),
+  ddH10_rose4 = as.factor(as.character(ddH10_rose4)),
+  ech = as.numeric(ech)
+) %>% select(
+  -date
+)
+
+str(df)
+
+# NA values ?
+pMiss <- function(x){sum(is.na(x))/length(x)*100}
+sort(apply(df,2,pMiss))
+
+df <- df[,!(colnames(df) %in% c("tH2_obs"))]
 
 test <- sample(nrow(df), size = round(nrow(df)*0.3), replace = F)
 learn <- df[-test,]
@@ -245,9 +215,9 @@ par(mfrow=c(1,1))
 #tpwHPA850 ux1H10 vapcSOL0 vx1H10 ech ecart
 
 
-reg <- lm(ecart ~ factor(ddH10_rose4) + fllat1SOL0 + hcoulimSOL0 +
-            tH2 + tH2_VGrad_2.100 + tH2_YGrad + ech +
-            insee1 + insee2 + insee3 + insee4 + insee5 + insee6 + insee7, data = learn)
+reg <- lm(ecart ~ ddH10_rose4-1 + fllat1SOL0 + hcoulimSOL0 +
+            tH2 + tH2_VGrad_2.100 + tH2_YGrad + ech + insee,
+          data = learn)
 summary(reg)
 
 
@@ -260,16 +230,8 @@ abline(a = 0, b = 1)
 RMSE = mean((reality - pred) ^2)
 print(RMSE)
 
-# RMSE (origin data) = 1.58
-# RMSE (NOW) = 1.54
-
-
-
-
-
-
-pred = predict.lm(reg, valid)
-hist(pred)
+# RMSE (origin data) = 1.639978
+# RMSE (NOW) = 1.629867
 
 
 
@@ -277,9 +239,16 @@ hist(pred)
 
 
 
+#----------
+# Check NA on TEST set :
+#----------
 
+# test <- read.csv("./Sakhir/data/test/test.csv", sep=";", dec=",")
+# head(test)
 
-
+# NA imputation :
+pMiss <- function(x){sum(is.na(x))/length(x)*100}
+sort(apply(df,2,pMiss))
 
 
 VALID <- read.csv("./Sakhir/data/test/test.csv", sep=";", dec = ",")
@@ -287,49 +256,38 @@ VALID <- read.csv("./Sakhir/data/test/test.csv", sep=";", dec = ",")
 df <- VALID
 str(df)
 
-X <- df[,!(colnames(df) %in% c("date", "insee", "ddH10_rose4"))]
-X <- scale(X, center = T, scale = T)
-X <- as.data.frame(X)
-X <- cbind(df$insee, df$ddH10_rose4, X, df$ecart)
+th2 = df$tH2
+oldech = df$ech
 
-
-
-
-ecart = NA
+ecart = as.numeric(NA)
 df <- as.data.frame(cbind(ecart, df))
 
 df <- df %>% mutate(
   #date = as.Date(date, "%Y-%m-%d"),
   insee = as.factor(as.character(insee)),
   # ddH10_rose4 = direction du vent (126 == "" -> NA ou O ?),
-  ddH10_rose4 = as.numeric(as.character(ddH10_rose4)),
+  ddH10_rose4 = as.factor(as.numeric(as.character(ddH10_rose4))),
   ech = as.numeric(ech),
   mois = as.character(mois)
 ) %>% select(
-  -flvis1SOL0
+  -flvis1SOL0, -mois
   # flvis1SOL0 = 1 level ? : var = 0,
 )
-df$mois[df$mois == "jan"] = "1_jan"
-df$mois[df$mois == "février"] = "2_fev"
-df$mois[df$mois == "mars"] = "3_mar"
-df$mois[df$mois == "avril"] = "4_avr"
-df$mois[df$mois == "mai"] = "5_mai"
-df$mois[df$mois == "juin"] = "6_juin"
-df$mois[df$mois == "juillet"] = "7_juil"
-df$mois[df$mois == "août"] = "8_aout"
-df$mois[df$mois == "septembre"] = "9_sept"
-df$mois[df$mois == "octobre"] = "10_oct"
-df$mois[df$mois == "novembre"] = "11_nov"
-df$mois[df$mois == "décembre"] = "12_dec"
-df <- df %>% mutate(
-  mois = as.factor(mois)
-)
+
+X <- df[,!(colnames(df) %in% c("date", "insee", "ddH10_rose4", "ecart", "test"))]
+X <- scale(X, center = T, scale = T)
+X <- as.data.frame(X)
+X <- cbind(df$insee, df$ddH10_rose4, X, df$ecart)
+df <- cbind(df$date, X)
+colnames(df)[c(1,2,3,29)] = c("date", "insee", "ddH10_rose4", "ecart")
+
+
 
 resu <- predict(reg, df)
 
-tH2_obs = df$tH2 + resu
+tH2_obs = th2 + resu
 df$tH2_obs = tH2_obs
-
+df$ech = oldech
 submiss <- df %>% select(
   date, insee, ech, tH2_obs
 )
@@ -337,6 +295,11 @@ submiss <- df %>% select(
 head(submiss)
 
 # write.table(submiss, file = "./new_sub.csv", row.names = F, sep=";", dec = ".", quote = F)
+
+
+
+
+
 
 
 

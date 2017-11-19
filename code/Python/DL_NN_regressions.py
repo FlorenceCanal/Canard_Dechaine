@@ -23,6 +23,9 @@ from math import sqrt
 #                       #
 #########################
 
+# ADD CATEGORICAL :
+# - https://machinelearningmastery.com/multi-class-classification-tutorial-keras-deep-learning-library/
+
 
 #----------
 # I. Importation
@@ -171,10 +174,10 @@ data_test.fillna(0,inplace=True)
 th2 = np.array(data_test['tH2'], dtype=pd.Series)
 m_test = np.matrix(data_test)
 
-scale_test = StandardScaler()
-scale_test.fit(m_test)
-data_test = pd.DataFrame(scale_test.transform(m_test), columns = col_X)
-#data_test = pd.DataFrame(scale_x.transform(m_test), columns = col_X)
+#scale_test = StandardScaler()
+#scale_test.fit(m_test)
+#data_test = pd.DataFrame(scale_test.transform(m_test), columns = col_X)
+data_test = pd.DataFrame(scale_x.transform(m_test), columns = col_X)
 predict = model.predict(data_test.values)
 
 #predict[abs(predict) > 8] = 0
@@ -187,6 +190,7 @@ X_filled = X_filled.drop('tH2_obs', 1)
 X_filled['tH2_obs'] = pd.Series(th2 + predict, index=data_test.index)
 plt.hist(X_filled['tH2_obs'])
 plt.show()
+
 X_filled['tH2_obs']= X_filled['tH2_obs'].astype(str)
 X_filled = X_filled.replace({'\.': ','}, regex=True)
 #X_filled.to_csv("C:/Users/mbriens/Documents/M2/Apprentissage/Projet/GIT/sub_skMLPregressor1.csv", sep=';', index = False)
@@ -219,39 +223,55 @@ sgd=SGD(lr=0.1)
 #kfold = StratifiedKFold(n_splits=5, shuffle=True, random_state=seed)
 #for train, test in kfold.split(X, y):
 model = Sequential()
-model.add(Dense(64, input_dim=22, activation='relu'))
-model.add(Dense(128, activation='relu'))
-model.add(Dense(150, activation='relu'))
+model.add(Dense(64, input_dim=22, activation='relu')) #64
+model.add(Dropout(0.3))
+model.add(Dense(128, activation='relu')) #128
+model.add(Dropout(0.3))
+model.add(Dense(150, activation='relu')) #150
+model.add(Dropout(0.3))
 model.add(Dense(1))
 model.compile(optimizer='rmsprop', loss='mse', metrics=['mae']) # optimizer=sgd
-model.fit(X_train, y_train, epochs=200, verbose=1)
+model.fit(X_train, y_train, epochs=250, verbose=1)
 
 
 reality = y_test
 predict = model.predict(X_test)
 predict[abs(predict) > 8] = 0
-plt.plot(predict, reality, 'ro')
+plt.plot(predict*1.2, reality, 'ro')
 plt.xlabel('Predictions')
 plt.ylabel('Reality')
 plt.title('Predictions x Reality on dataset Test')
 plt.plot([reality.min(), reality.max()], [reality.min(), reality.max()], 'k--', lw=4)
 plt.show()
-rmse = sqrt(mean_squared_error(reality, predict))
-# 1.02
+rmse = sqrt(mean_squared_error(reality, predict*1.2))
+# 1.00
 print('RMSE = ' + str(rmse))
+
 
 reality = y_valid
 predict = model.predict(X_valid)
 predict[abs(predict) > 8] = 0
-plt.plot(predict, reality, 'ro')
+plt.plot(predict*1.2, reality, 'ro')
 plt.xlabel('Predictions')
 plt.ylabel('Reality')
 plt.title('Predictions x Reality on dataset Test')
 plt.plot([reality.min(), reality.max()], [reality.min(), reality.max()], 'k--', lw=4)
 plt.show()
-rmse = sqrt(mean_squared_error(reality, predict))
+rmse = sqrt(mean_squared_error(reality, predict*1.2))
 # 1.00
 print('RMSE = ' + str(rmse))
+
+
+loss, acc = model.evaluate(X_train, y_train,  verbose=0)
+print('The RMSE on the training set is ',(loss),' ',(acc)) #0.78
+
+loss, acc = model.evaluate(X_test, y_test,  verbose=0)
+print('The RMSE on the testing set is ',(loss),' ',(acc)) #1.05
+loss, acc = model.evaluate(X_valid, y_valid,  verbose=0)
+print('The RMSE on the validation set is ',(loss),' ',(acc)) #1.06
+
+
+
 
 
 
@@ -292,9 +312,11 @@ plt.show()
 
 X_filled = pd.read_csv("C:/Users/mbriens/Documents/M2/Apprentissage/Projet/GIT/Sakhir/data/test/test_answer_template.csv", sep=";")
 X_filled = X_filled.drop('tH2_obs', 1)
-X_filled['tH2_obs'] = pd.Series(th2 + predict, index=data_test.index)
+predict = predict[:,0]
+X_filled['tH2_obs'] = pd.Series(th2 + predict)
 plt.hist(X_filled['tH2_obs'])
 plt.show()
+
 X_filled['tH2_obs']= X_filled['tH2_obs'].astype(str)
 X_filled = X_filled.replace({'\.': ','}, regex=True)
 #X_filled.to_csv("C:/Users/mbriens/Documents/M2/Apprentissage/Projet/GIT/sub_skMLPregressor1.csv", sep=';', index = False)
