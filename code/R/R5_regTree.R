@@ -82,30 +82,43 @@ dfmod$insee <- as.factor(as.character(dfmod$insee))
 # }
 # sort(apply(df,2,pMiss))
 
+# Change NA to mean
+for(i in 1:ncol(dfmod)){
+  if(class(dfmod[,i]) == "numeric"){
+    dfmod[is.na(dfmod[,i]), i] <- mean(dfmod[,i], na.rm = TRUE)
+  }
+}
+
 set.seed(29)
 test <- sample(nrow(dfmod), size = round(nrow(dfmod)*0.7), replace = F)
 learn <- dfmod[-test,]
 test <- dfmod[test,]
 
-
-# Change NA to mean
-for(i in 1:ncol(learn)){
-  if(class(learn[,i]) == "numeric"){
-    learn[is.na(learn[,i]), i] <- mean(learn[,i], na.rm = TRUE)
-  }
-}
-
-for(i in 1:ncol(test)){
-  if(class(test[,i]) == "numeric"){
-    test[is.na(test[,i]), i] <- mean(test[,i], na.rm = TRUE)
-  }
-}
-
-
 pMiss <- function(x){sum(is.na(x))/length(x)*100}
 
 sort(apply(learn,2,pMiss))
 sort(apply(test,2,pMiss))
+
+
+# # train model
+# control <- trainControl(method="repeatedcv", number=5, repeats=3, search = "grid")
+# tunegrid <- expand.grid(.mtry=c(1:9))#, .ntree=c(500, 750, 1000, 1500))
+# 
+# for (ntree in c(500, 750, 1000, 1500)) {
+#   print(ntree)
+#   fit <- train(ecart ~ insee + ech + ddH10_rose4 + flsen1SOL0 + flvis1SOL0 +
+#                  hcoulimSOL0 + huH2 + tH2 + tH2_YGrad + fllat1SOL0 + tH2_VGrad_2.100,
+#                data = dfmod, method="rf", metric="RMSE",
+#                tuneGrid=tunegrid, trControl=control, ntree=ntree)
+#   key <- toString(ntree)
+#   modellist[[key]] <- fit
+# }
+# 
+# summary(modellist)
+# plot(modellist)
+
+
+
 
 
 
@@ -118,7 +131,7 @@ fit <- randomForest(ecart ~ insee + ech + ddH10_rose4 + flsen1SOL0 + flvis1SOL0 
                     mtry = 3,
                     replace = FALSE,
                     nodesize = 1 #floor(nrow(learn)*0.0001)
-                    )
+)
 print(fit) # view results
 # 46.3 % of var explained
 

@@ -224,40 +224,43 @@ sgd=SGD(lr=0.1)
 #for train, test in kfold.split(X, y):
 model = Sequential()
 model.add(Dense(64, input_dim=22, activation='relu')) #64
-model.add(Dropout(0.3))
+model.add(Dropout(0.3)) #0.3
 model.add(Dense(128, activation='relu')) #128
-model.add(Dropout(0.3))
+model.add(Dropout(0.4)) #0.3
 model.add(Dense(150, activation='relu')) #150
-model.add(Dropout(0.3))
+model.add(Dropout(0.4)) #0.3
+#model.add(Dense(250, activation='relu'))
+#model.add(Dropout(0.3))
 model.add(Dense(1))
 model.compile(optimizer='rmsprop', loss='mse', metrics=['mae']) # optimizer=sgd
-model.fit(X_train, y_train, epochs=250, verbose=1)
+model.fit(X_train, y_train, epochs=400, verbose=1)
 
+
+factor = 1.3
 
 reality = y_test
 predict = model.predict(X_test)
 predict[abs(predict) > 8] = 0
-plt.plot(predict*1.2, reality, 'ro')
+plt.plot(predict*factor, reality, 'ro')
 plt.xlabel('Predictions')
 plt.ylabel('Reality')
 plt.title('Predictions x Reality on dataset Test')
 plt.plot([reality.min(), reality.max()], [reality.min(), reality.max()], 'k--', lw=4)
 plt.show()
-rmse = sqrt(mean_squared_error(reality, predict*1.2))
+rmse = sqrt(mean_squared_error(reality, predict*factor))
 # 1.00
 print('RMSE = ' + str(rmse))
-
 
 reality = y_valid
 predict = model.predict(X_valid)
 predict[abs(predict) > 8] = 0
-plt.plot(predict*1.2, reality, 'ro')
+plt.plot(predict*factor, reality, 'ro')
 plt.xlabel('Predictions')
 plt.ylabel('Reality')
 plt.title('Predictions x Reality on dataset Test')
 plt.plot([reality.min(), reality.max()], [reality.min(), reality.max()], 'k--', lw=4)
 plt.show()
-rmse = sqrt(mean_squared_error(reality, predict*1.2))
+rmse = sqrt(mean_squared_error(reality, predict*factor))
 # 1.00
 print('RMSE = ' + str(rmse))
 
@@ -307,7 +310,7 @@ data_test = np.array(data_test)
 predict = model.predict(data_test)
 #predict[abs(predict) > 8] = 0
 
-plt.hist(predict)
+plt.hist(predict*factor)
 plt.show()
 
 X_filled = pd.read_csv("C:/Users/mbriens/Documents/M2/Apprentissage/Projet/GIT/Sakhir/data/test/test_answer_template.csv", sep=";")

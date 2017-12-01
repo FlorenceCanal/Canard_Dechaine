@@ -1,5 +1,6 @@
 debut <- Sys.time()
 
+library(plyr)
 library(dplyr)
 library(caret)
 library(corrplot)
@@ -68,20 +69,31 @@ par(mfrow=c(1,1))
 
 # ...
 
-dfmod <- df[,colnames(df) %in% c("mois","ecart","insee","ech","ddH10_rose4","flsen1SOL0","flvis1SOL0","hcoulimSOL0","huH2","tH2","tH2_YGrad")]
 
-# # Change NA to mean
-# for(i in 1:ncol(df)){
-#   if(class(df[,i]) == "numeric"){
-#     df[is.na(df[,i]), i] <- mean(df[,i], na.rm = TRUE)
-#   }
-# }
-# sort(apply(df,2,pMiss))
+dfmod <- df[,colnames(df) %in% c("mois","ecart","insee","ech","ddH10_rose4","flsen1SOL0","flvis1SOL0","hcoulimSOL0","huH2","tH2","tH2_YGrad")]
 
 test <- sample(nrow(dfmod), size = round(nrow(dfmod)*0.7), replace = F)
 learn <- dfmod[-test,]
 test <- dfmod[test,]
 
+# Change NA to mean
+for(i in 1:ncol(learn)){
+  if(class(learn[,i]) == "numeric"){
+    learn[is.na(learn[,i]), i] <- mean(learn[,i], na.rm = TRUE)
+  }
+}
+for(i in 1:ncol(test)){
+  if(class(test[,i]) == "numeric"){
+    test[is.na(test[,i]), i] <- mean(test[,i], na.rm = TRUE)
+  }
+}
+
+
+
+
+
+#----------
+# Regression linéaire
 
 reg <- lm(ecart ~
             ddH10_rose4-1 + flsen1SOL0 +
@@ -101,16 +113,12 @@ print(RMSE)
 
 
 
-# Change NA to mean
-for(i in 1:ncol(learn)){
-  if(class(learn[,i]) == "numeric"){
-    learn[is.na(learn[,i]), i] <- mean(learn[,i], na.rm = TRUE)
-  }
-}
 
+
+#----------
+# Regression à effets aléatoires mixtes
 
 # ddH10_rose4-1 + flsen1SOL0 + flvis1SOL0 + hcoulimSOL0 + huH2 + tH2 + tH2_YGrad
-
 model <- lme(fixed = ecart ~ ech*insee*ddH10_rose4*tH2 + hcoulimSOL0 + huH2 + tH2_YGrad,
              data=learn,
              random = ~1|ech/insee,
@@ -129,7 +137,6 @@ anova(model)
 #              na.action=na.exclude)
 # anova(model, test='Chisq')
 
-
 pred = predict(model, test, na.action = na.pass)
 table(is.na(pred))
 pred[is.na(pred)] = 0
@@ -142,6 +149,103 @@ print(RMSE)
 
 
 
+
+#----------
+# Lasso regression
+
+library(lars)
+
+dfmod2 <- dfmod[,colnames(dfmod) %in% c("ecart","ech","flsen1SOL0","flvis1SOL0","hcoulimSOL0","huH2","tH2","tH2_YGrad")]
+test_lasso <- sample(nrow(dfmod2), size = round(nrow(dfmod2)*0.7), replace = F)
+learn_lasso <- dfmod2[-test_lasso,]
+test_lasso <- dfmod2[test_lasso,]
+# Change NA to mean
+for(i in 1:ncol(learn_lasso)){
+  if(class(learn_lasso[,i]) == "numeric"){
+    learn_lasso[is.na(learn_lasso[,i]), i] <- mean(learn_lasso[,i], na.rm = TRUE)
+  }
+}
+for(i in 1:ncol(test_lasso)){
+  if(class(test_lasso[,i]) == "numeric"){
+    test_lasso[is.na(test_lasso[,i]), i] <- mean(test_lasso[,i], na.rm = TRUE)
+  }
+}
+
+Independent_variable <- as.matrix(learn_lasso[,!(colnames(learn_lasso) %in% "ecart")])
+Dependent_Variable <- as.matrix(learn_lasso$ecart)
+laa <- lars(Independent_variable, Dependent_Variable, type = 'lasso')
+# plot(laa)
+coef(laa, s = which.min(summary(laa)$Cp), mode="step")
+
+best_step <- laa$df[which.min(laa$RSS)]
+x = as.matrix(test_lasso[,!(colnames(test_lasso) %in% "ecart")])
+predict <- predict(laa, x, s=best_step, type="fit")$fit
+table(is.na(predict))
+
+plot(predict, test_lasso$ecart)
+abline(a=0, b=1, col = "red")
+RMSE = mean((test_lasso$ecart - predict) ^2)
+print(RMSE)
+
+
+
+
+
+#----------
+# XGboost
+
+library(xgboost)
+
+learn_xgb <- as.matrix(learn_lasso, rownames.force=NA)
+test_xgb <- as.matrix(test_lasso, rownames.force=NA)
+learn_xgb <- as(learn_xgb, "sparseMatrix")
+test_xgb <- as(test_xgb, "sparseMatrix")
+# Never forget to exclude objective variable in 'data option'
+# learn_Data <- xgb.DMatrix(data = as.matrix(learn[,seq(1,9)]), label = as.matrix(learn[,"ecart"]))
+
+# Tuning the parameters #
+cv.ctrl <- trainControl(method = "repeatedcv", repeats = 1, number = 3)
+
+xgb.grid <- expand.grid(nrounds = 500,
+                        max_depth = seq(6,10),
+                        eta = c(0.01,0.3, 1),
+                        gamma = c(0.0, 0.2, 1),
+                        colsample_bytree = c(0.5,0.8, 1),
+                        min_child_weight = seq(1,10),
+                        subsample = 1 #seq(0.5,10, by=0.5)
+)
+
+xgb_tune <- train(ecart ~.,
+                  data=learn,
+                  method="xgbTree",
+                  metric = "RMSE",
+                  trControl=cv.ctrl,
+                  tuneGrid=xgb.grid
+)
+
+print(xgb.grid)
+
+
+predict <- predict(xgb_tune, test)
+table(is.na(predict))
+
+plot(predict, test$ecart)
+abline(a=0, b=1, col = "red")
+RMSE = mean((test_lasso$ecart - predict) ^2)
+print(RMSE)
+
+
+
+
+
+
+
+
+
+
+
+#----------
+# Application on TEST set
 
 test <- read.csv("./Sakhir/data/test/test.csv", sep=";", dec=",")
 
@@ -167,6 +271,23 @@ par(mfrow=c(2,1))
 hist(pred, breaks = 50)
 hist(dfmod$ecart, breaks = 50)
 par(mfrow=c(2,2))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#----------------------------------------
+fin <- Sys.time()
+print(fin-debut)
 
 
 
