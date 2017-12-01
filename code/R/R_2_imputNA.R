@@ -111,7 +111,8 @@ summary(aggr_plot)
 aggr_plot$percent
 
 # Correlation
-X <- scale(X, center = T, scale = T)
+# X <- scale(X, center = T, scale = T)
+
 # scX <- X
 # scale <- matrix(nrow = 2, ncol = ncol(X))
 # colnames(scale) = colnames(X)

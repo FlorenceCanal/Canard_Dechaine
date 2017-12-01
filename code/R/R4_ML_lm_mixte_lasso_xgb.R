@@ -71,8 +71,9 @@ par(mfrow=c(1,1))
 
 
 dfmod <- df[,colnames(df) %in% c("mois","ecart","insee","ech","ddH10_rose4","flsen1SOL0","flvis1SOL0","hcoulimSOL0","huH2","tH2","tH2_YGrad")]
+dfmod$insee <- as.factor(as.character(dfmod$insee))
 
-test <- sample(nrow(dfmod), size = round(nrow(dfmod)*0.7), replace = F)
+test <- sample(nrow(dfmod), size = round(nrow(dfmod)*0.8), replace = F)
 learn <- dfmod[-test,]
 test <- dfmod[test,]
 
@@ -105,12 +106,11 @@ summary(reg)
 pred = predict(reg, test)
 table(is.na(pred))
 pred[is.na(pred)] = 0
-plot(pred, test$ecart)
-abline(a=0, b=1, col = "red")
 test$ecart[is.na(test$ecart)] = 0
 RMSE = mean((test$ecart - pred) ^2)
 print(RMSE)
-
+plot(pred, test$ecart, main=paste("Regression Linéaire\nRMSE =", round(RMSE,5)))
+abline(a=0, b=1, col = "red")
 
 
 
@@ -141,10 +141,10 @@ pred = predict(model, test, na.action = na.pass)
 table(is.na(pred))
 pred[is.na(pred)] = 0
 pred[abs(pred) > 8] = 0
-plot(pred, test$ecart)
-abline(a=0, b=1, col = "red")
 RMSE = mean((test$ecart - pred) ^2)
 print(RMSE)
+plot(pred, test$ecart, main=paste("Regression Mixte\nRMSE =", round(RMSE,5)))
+abline(a=0, b=1, col = "red")
 
 
 
@@ -156,7 +156,7 @@ print(RMSE)
 library(lars)
 
 dfmod2 <- dfmod[,colnames(dfmod) %in% c("ecart","ech","flsen1SOL0","flvis1SOL0","hcoulimSOL0","huH2","tH2","tH2_YGrad")]
-test_lasso <- sample(nrow(dfmod2), size = round(nrow(dfmod2)*0.7), replace = F)
+test_lasso <- sample(nrow(dfmod2), size = round(nrow(dfmod2)*0.8), replace = F)
 learn_lasso <- dfmod2[-test_lasso,]
 test_lasso <- dfmod2[test_lasso,]
 # Change NA to mean
@@ -182,10 +182,10 @@ x = as.matrix(test_lasso[,!(colnames(test_lasso) %in% "ecart")])
 predict <- predict(laa, x, s=best_step, type="fit")$fit
 table(is.na(predict))
 
-plot(predict, test_lasso$ecart)
-abline(a=0, b=1, col = "red")
 RMSE = mean((test_lasso$ecart - predict) ^2)
 print(RMSE)
+plot(predict, test_lasso$ecart, main=paste("Regression Lasso\nRMSE =", round(RMSE,5)))
+abline(a=0, b=1, col = "red")
 
 
 
@@ -196,10 +196,11 @@ print(RMSE)
 
 library(xgboost)
 
-learn_xgb <- as.matrix(learn_lasso, rownames.force=NA)
-test_xgb <- as.matrix(test_lasso, rownames.force=NA)
-learn_xgb <- as(learn_xgb, "sparseMatrix")
-test_xgb <- as(test_xgb, "sparseMatrix")
+# learn_xgb <- as.matrix(learn_lasso, rownames.force=NA)
+# test_xgb <- as.matrix(test_lasso, rownames.force=NA)
+# learn_xgb <- as(learn_xgb, "sparseMatrix")
+# test_xgb <- as(test_xgb, "sparseMatrix")
+
 # Never forget to exclude objective variable in 'data option'
 # learn_Data <- xgb.DMatrix(data = as.matrix(learn[,seq(1,9)]), label = as.matrix(learn[,"ecart"]))
 
@@ -211,9 +212,10 @@ xgb.grid <- expand.grid(nrounds = 500,
                         eta = c(0.01,0.3, 1),
                         gamma = c(0.0, 0.2, 1),
                         colsample_bytree = c(0.5,0.8, 1),
-                        min_child_weight = seq(1,10),
-                        subsample = 1 #seq(0.5,10, by=0.5)
+                        min_child_weight = seq(1,9, by=2),
+                        subsample = c(0.5,1,5,8,10)
 )
+print(xgb.grid)
 
 xgb_tune <- train(ecart ~.,
                   data=learn,
@@ -222,18 +224,15 @@ xgb_tune <- train(ecart ~.,
                   trControl=cv.ctrl,
                   tuneGrid=xgb.grid
 )
-
 print(xgb.grid)
-
 
 predict <- predict(xgb_tune, test)
 table(is.na(predict))
 
-plot(predict, test$ecart)
-abline(a=0, b=1, col = "red")
-RMSE = mean((test_lasso$ecart - predict) ^2)
+RMSE = mean((test$ecart - predict) ^2)
 print(RMSE)
-
+plot(predict, test$ecart, main=paste("XGboost\nRMSE =", round(RMSE,5)))
+abline(a=0, b=1, col = "red")
 
 
 
@@ -262,15 +261,12 @@ test <- test %>% mutate(
 # test$ecart = rep(0, nrow(test))
 
 testmod <- test[,colnames(test) %in% c("insee","ech","ddH10_rose4","flsen1SOL0","flvis1SOL0","hcoulimSOL0","huH2","tH2","tH2_YGrad")]
-
+testmod$insee <- as.factor(as.character(testmod$insee))
 
 pred = predict(model, testmod)
 prop.table(table(is.na(pred)))*100
 
-par(mfrow=c(2,1))
 hist(pred, breaks = 50)
-hist(dfmod$ecart, breaks = 50)
-par(mfrow=c(2,2))
 
 
 

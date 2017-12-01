@@ -1,5 +1,6 @@
 debut <- Sys.time()
 
+library(plyr)
 library(dplyr)
 library(caret)
 library(corrplot)
@@ -13,6 +14,7 @@ library(MASS)
 library(nlme)
 library(lme4)
 library(randomForest)
+library(ggmap)
 
 
 setwd("C:/Users/mbriens/Documents/M2/Apprentissage/Projet/GIT")
@@ -43,9 +45,54 @@ df <- df %>% mutate(
   insee = as.factor(as.character(insee)),
   ddH10_rose4 = as.factor(as.integer(as.character(ddH10_rose4))),
   ech = as.numeric(ech)
-) %>% select(
-  -capeinsSOL0
+)# %>% select(
+#  -capeinsSOL0
+#)
+
+df$insee = revalue(df$insee, c("6088001" = "Nice",
+                               "31069001" = "Toulouse Blagnac",
+                               "33281001" = "Bordeaux Merignac",
+                               "35281001" = "Rennes",
+                               "59343001" = "Lille Lesquin",
+                               "67124001" = "Strasbourg Entzheim",
+                               "75114001" = "Paris-Montsouris"))
+
+# library(ggmap) #dismo
+villes = unique(as.character(df$insee))
+geo = NULL
+for(i in seq(length(villes))){
+  print(i)
+  res = geocode(paste(villes[i], "station meteo, France"))
+  if(is.na(res)){
+    print("no station")
+    res = geocode(villes[i])
+  }
+  geo = rbind(geo, cbind(villes[i], res))
+}
+print(geo)
+
+df$lon = revalue(df$insee, c("Nice" = geo[1,2],
+                             "Toulouse Blagnac" = geo[2,2],
+                             "Bordeaux Merignac" = geo[3,2],
+                             "Rennes" = geo[4,2],
+                             "Lille Lesquin" = geo[5,2],
+                             "Strasbourg Entzheim" = geo[6,2],
+                             "Paris-Montsouris" = geo[7,2]))
+
+df$lat = revalue(df$insee, c("Nice" = geo[1,3],
+                             "Toulouse Blagnac" = geo[2,3],
+                             "Bordeaux Merignac" = geo[3,3],
+                             "Rennes" = geo[4,3],
+                             "Lille Lesquin" = geo[5,3],
+                             "Strasbourg Entzheim" = geo[6,3],
+                             "Paris-Montsouris" = geo[7,3]))
+
+df <- df %>% mutate(
+  lon = as.numeric(as.character(lon)),
+  lat = as.numeric(as.character(lat))
 )
+
+
 
 reality = df$tH2_obs
 
@@ -69,10 +116,11 @@ par(mfrow=c(1,1))
 
 # ...
 
-dfmod = subset(df, select=c("ecart", "insee", "ech", "ddH10_rose4",
-                            "flsen1SOL0", "flvis1SOL0", "hcoulimSOL0", "huH2",
-                            "tH2", "tH2_YGrad", "fllat1SOL0", "tH2_VGrad_2.100"))
-dfmod$insee <- as.factor(as.character(dfmod$insee))
+dfmod = df
+# dfmod = subset(df, select=c("ecart", "insee", "ech", "ddH10_rose4",
+#                             "flsen1SOL0", "flvis1SOL0", "hcoulimSOL0", "huH2",
+#                             "tH2", "tH2_YGrad", "fllat1SOL0", "tH2_VGrad_2.100"))
+# dfmod$insee <- as.factor(as.character(dfmod$insee))
 
 # # Change NA to mean
 # for(i in 1:ncol(df)){
@@ -100,22 +148,23 @@ sort(apply(learn,2,pMiss))
 sort(apply(test,2,pMiss))
 
 
-# # train model
-# control <- trainControl(method="repeatedcv", number=5, repeats=3, search = "grid")
-# tunegrid <- expand.grid(.mtry=c(1:9))#, .ntree=c(500, 750, 1000, 1500))
-# 
-# for (ntree in c(500, 750, 1000, 1500)) {
-#   print(ntree)
-#   fit <- train(ecart ~ insee + ech + ddH10_rose4 + flsen1SOL0 + flvis1SOL0 +
-#                  hcoulimSOL0 + huH2 + tH2 + tH2_YGrad + fllat1SOL0 + tH2_VGrad_2.100,
-#                data = dfmod, method="rf", metric="RMSE",
-#                tuneGrid=tunegrid, trControl=control, ntree=ntree)
-#   key <- toString(ntree)
-#   modellist[[key]] <- fit
-# }
-# 
-# summary(modellist)
-# plot(modellist)
+
+
+# train model : GRID search
+control <- trainControl(method="repeatedcv", number=5, repeats=3, search = "grid")
+tunegrid <- expand.grid(.mtry=seq(1,9))#, .ntree=c(500, 750, 1000, 1500))
+
+for (ntree in c(500, 750)) {
+  print(ntree)
+  fit <- train(ecart ~ . -date -mois,
+               data = dfmod, method="rf", metric="RMSE",
+               tuneGrid=tunegrid, trControl=control, ntree=ntree)
+  key <- toString(ntree)
+  modellist[[key]] <- fit
+}
+
+summary(modellist)
+plot(modellist)
 
 
 
@@ -123,17 +172,19 @@ sort(apply(test,2,pMiss))
 
 
 
-fit <- randomForest(ecart ~ insee + ech + ddH10_rose4 + flsen1SOL0 + flvis1SOL0 +
-                      hcoulimSOL0 + huH2 + tH2 + tH2_YGrad + fllat1SOL0 + tH2_VGrad_2.100,
-                    method = "anova", data = learn,
-                    xtest = NULL, ytest = NULL,
-                    ntree = 750,
-                    mtry = 3,
-                    replace = FALSE,
-                    nodesize = 1 #floor(nrow(learn)*0.0001)
-)
-print(fit) # view results
-# 46.3 % of var explained
+# # fit <- randomForest(ecart ~ insee + ech + ddH10_rose4 + flsen1SOL0 + flvis1SOL0 +
+# #                       hcoulimSOL0 + huH2 + tH2 + tH2_YGrad + fllat1SOL0 + tH2_VGrad_2.100,
+# fit <- randomForest(ecart ~ . -date -mois,
+#                     method = "anova", data = learn,
+#                     xtest = NULL, ytest = NULL,
+#                     ntree = 750,
+#                     mtry = 3,
+#                     replace = FALSE,
+#                     type = 1,
+#                     nodesize = 1 #floor(nrow(learn)*0.0001)
+# )
+# print(fit) # view results
+# print(round(tail(fit$rsq, 1)*100, 4)) # 46.3 % of var explained
 
 
 # importance(fit) # importance of each predictor
@@ -179,7 +230,7 @@ print(RMSE)
 
 VALID <- read.csv("./Sakhir/data/test/test.csv", sep=";", dec = ",")
 df <- VALID
-ecart = NA
+ecart = as.numeric(NA)
 df <- as.data.frame(cbind(ecart, df))
 
 df$flvis1SOL0 = as.character(df$flvis1SOL0)
@@ -194,15 +245,52 @@ df <- df %>% mutate(
   insee = as.factor(as.character(insee)),
   ddH10_rose4 = as.factor(as.integer(as.character(ddH10_rose4))),
   ech = as.numeric(ech)
-) %>% select(
-  -capeinsSOL0
+)# %>% select(
+#  -capeinsSOL0
+#)
+
+df$insee = revalue(df$insee, c("6088001" = "Nice",
+                               "31069001" = "Toulouse Blagnac",
+                               "33281001" = "Bordeaux Merignac",
+                               "35281001" = "Rennes",
+                               "59343001" = "Lille Lesquin",
+                               "67124001" = "Strasbourg Entzheim",
+                               "75114001" = "Paris-Montsouris"))
+
+df$lon = revalue(df$insee, c("Nice" = geo[1,2],
+                             "Toulouse Blagnac" = geo[2,2],
+                             "Bordeaux Merignac" = geo[3,2],
+                             "Rennes" = geo[4,2],
+                             "Lille Lesquin" = geo[5,2],
+                             "Strasbourg Entzheim" = geo[6,2],
+                             "Paris-Montsouris" = geo[7,2]))
+
+df$lat = revalue(df$insee, c("Nice" = geo[1,3],
+                             "Toulouse Blagnac" = geo[2,3],
+                             "Bordeaux Merignac" = geo[3,3],
+                             "Rennes" = geo[4,3],
+                             "Lille Lesquin" = geo[5,3],
+                             "Strasbourg Entzheim" = geo[6,3],
+                             "Paris-Montsouris" = geo[7,3]))
+
+df$mois = revalue(df$mois, c("juillet" = "aoÃ»t",
+                             "juin" = "mai",
+                             "novembre" = "octobre"))
+
+df <- df %>% mutate(
+  lon = as.numeric(as.character(lon)),
+  lat = as.numeric(as.character(lat))
 )
 
-real_test = subset(df, select = c("ecart", "insee", "ech", "ddH10_rose4",
-                                  "flsen1SOL0", "flvis1SOL0", "hcoulimSOL0", "huH2",
-                                  "tH2", "tH2_YGrad", "fllat1SOL0", "tH2_VGrad_2.100"))
-real_test$ddH10_rose4 <- as.factor(as.integer(as.character(real_test$ddH10_rose4)))
-real_test$insee <- as.factor(as.character(real_test$insee))
+
+
+
+real_test = df
+# real_test = subset(df, select = c("ecart", "insee", "ech", "ddH10_rose4",
+#                                   "flsen1SOL0", "flvis1SOL0", "hcoulimSOL0", "huH2",
+#                                   "tH2", "tH2_YGrad", "fllat1SOL0", "tH2_VGrad_2.100"))
+# real_test$ddH10_rose4 <- as.factor(as.integer(as.character(real_test$ddH10_rose4)))
+# real_test$insee <- as.factor(as.character(real_test$insee))
 
 str(real_test)
 
