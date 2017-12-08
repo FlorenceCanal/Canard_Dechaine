@@ -71,6 +71,16 @@ for(i in seq(length(villes))){
 }
 print(geo)
 
+# villes[i]        lon      lat
+# 1                Nice  7.2133184 43.66510
+# 2    Toulouse Blagnac  1.3719825 43.63799
+# 3   Bordeaux Merignac -0.6920608 44.83137
+# 4              Rennes -1.7232451 48.06560
+# 5       Lille Lesquin  3.1060870 50.57178
+# 6 Strasbourg Entzheim  7.6280226 48.53943
+# 7    Paris-Montsouris  2.3378563 48.82231
+
+
 df$lon = revalue(df$insee, c("Nice" = geo[1,2],
                              "Toulouse Blagnac" = geo[2,2],
                              "Bordeaux Merignac" = geo[3,2],
@@ -150,41 +160,37 @@ sort(apply(test,2,pMiss))
 
 
 
-# train model : GRID search
-control <- trainControl(method="repeatedcv", number=5, repeats=3, search = "grid")
-tunegrid <- expand.grid(.mtry=seq(1,9))#, .ntree=c(500, 750, 1000, 1500))
-
-for (ntree in c(500, 750)) {
-  print(ntree)
-  fit <- train(ecart ~ . -date -mois,
-               data = dfmod, method="rf", metric="RMSE",
-               tuneGrid=tunegrid, trControl=control, ntree=ntree)
-  key <- toString(ntree)
-  modellist[[key]] <- fit
-}
-
-summary(modellist)
-plot(modellist)
-
-
+# # train model : GRID search
+# control <- trainControl(method="repeatedcv", number=5, repeats=3, search = "grid")
+# tunegrid <- expand.grid(.mtry=seq(1,9))#, .ntree=c(500, 750, 1000, 1500))
+# 
+# for (ntree in c(500, 750)) {
+#   print(ntree)
+#   fit <- train(ecart ~ . -date -mois,
+#                data = dfmod, method="rf", metric="RMSE",
+#                tuneGrid=tunegrid, trControl=control, ntree=ntree)
+#   key <- toString(ntree)
+#   modellist[[key]] <- fit
+# }
+# 
+# summary(modellist)
+# plot(modellist)
 
 
 
-
-
-# # fit <- randomForest(ecart ~ insee + ech + ddH10_rose4 + flsen1SOL0 + flvis1SOL0 +
-# #                       hcoulimSOL0 + huH2 + tH2 + tH2_YGrad + fllat1SOL0 + tH2_VGrad_2.100,
-# fit <- randomForest(ecart ~ . -date -mois,
-#                     method = "anova", data = learn,
-#                     xtest = NULL, ytest = NULL,
-#                     ntree = 750,
-#                     mtry = 3,
-#                     replace = FALSE,
-#                     type = 1,
-#                     nodesize = 1 #floor(nrow(learn)*0.0001)
-# )
-# print(fit) # view results
-# print(round(tail(fit$rsq, 1)*100, 4)) # 46.3 % of var explained
+# fit <- randomForest(ecart ~ insee + ech + ddH10_rose4 + flsen1SOL0 + flvis1SOL0 +
+#                       hcoulimSOL0 + huH2 + tH2 + tH2_YGrad + fllat1SOL0 + tH2_VGrad_2.100,
+fit <- randomForest(ecart ~ . -date -mois,
+                    method = "anova", data = learn,
+                    xtest = NULL, ytest = NULL,
+                    ntree = 750,
+                    mtry = 7,
+                    replace = FALSE,
+                    type = 1,
+                    nodesize = 1 #floor(nrow(learn)*0.0001)
+)
+print(fit) # view results
+print(round(tail(fit$rsq, 1)*100, 4)) # 46.3 % of var explained
 
 
 # importance(fit) # importance of each predictor
@@ -215,7 +221,7 @@ abline(a=0, b=1)
 RMSE = mean((test$ecart - pred) ^2)
 print(RMSE)
 
-# 1.168082
+# 1.068701
 
 
 

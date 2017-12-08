@@ -2,14 +2,17 @@
 
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
 import matplotlib.pyplot as plt
+from keras.utils import np_utils
 from keras.models import Sequential
 from keras.layers.core import Dense, Dropout, Activation, Flatten
 from keras.optimizers import RMSprop, SGD
+from keras.wrappers.scikit_learn import KerasClassifier
 from sklearn.neural_network import MLPRegressor
-from sklearn.model_selection import StratifiedKFold, train_test_split
+from sklearn.model_selection import StratifiedKFold, train_test_split, cross_val_score, KFold
 from sklearn.metrics import mean_squared_error
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
+from sklearn.preprocessing import StandardScaler, MinMaxScaler, LabelEncoder
 from sklearn.ensemble import IsolationForest
 from sklearn.pipeline import Pipeline
 from math import sqrt
@@ -50,6 +53,71 @@ df = df.drop('nH20', 1)
 df_th2obs = df['tH2_obs']
 df = df.drop('tH2_obs', 1)
 df.info()
+
+
+# Add categorical features
+encoder = LabelEncoder()
+encoder.fit(df['ddH10_rose4'])
+vent = encoder.transform(df['ddH10_rose4'])
+vent = np_utils.to_categorical(vent)
+vent = pd.DataFrame(vent)
+vent.columns = ['vent1', 'vent2', 'vent3', 'vent4']
+
+lat = []
+lon = []
+with tqdm(total=df.shape[0]) as pbar:
+    for each in df['insee']:
+        if each == 6088001:
+            lat.append(43.66510)
+            lon.append(7.2133184)
+        elif each == 31069001:
+            lat.append(43.63799)
+            lon.append(1.3719825)
+        elif each == 33281001:
+            lat.append(44.83137)
+            lon.append(-0.6920608)
+        elif each == 35281001:
+            lat.append(48.06560)
+            lon.append(-1.7232451)
+        elif each == 59343001:
+            lat.append(50.57178)
+            lon.append(3.1060870)
+        elif each == 67124001:
+            lat.append(48.53943)
+            lon.append(7.6280226)
+        elif each == 75114001:
+            lat.append(48.82231)
+            lon.append(2.3378563)
+        else:
+            print("ERROR")
+            break
+        pbar.update()
+
+print(len(lat) == len(lon) == len(df['insee']))
+
+#"6088001" = "Nice"
+#"31069001" = "Toulouse Blagnac"
+#"33281001" = "Bordeaux Merignac"
+#"35281001" = "Rennes"
+#"59343001" = "Lille Lesquin"
+#"67124001" = "Strasbourg Entzheim"
+#"75114001" = "Paris-Montsouris"
+
+#               villes        lon      lat
+#1                Nice  7.2133184 43.66510
+#2    Toulouse Blagnac  1.3719825 43.63799
+#3   Bordeaux Merignac -0.6920608 44.83137
+#4              Rennes -1.7232451 48.06560
+#5       Lille Lesquin  3.1060870 50.57178
+#6 Strasbourg Entzheim  7.6280226 48.53943
+#7    Paris-Montsouris  2.3378563 48.82231
+
+latlon = np.vstack((lat,lon)).T
+latlon = pd.DataFrame(latlon)
+latlon.columns = ['lat', 'lon']
+
+df = pd.concat([df, latlon, vent])
+
 df = df.select_dtypes(exclude=['object'])
 df.fillna(0, inplace=True)
 
@@ -78,7 +146,7 @@ X['ecart'] = df['ecart'].values
 # III. Train/Test/Valid split
 #----------
 
-ids = np.random.rand(len(X)) < 0.9
+ids = np.random.rand(len(X)) < 0.85
 train = X[ids]
 test = X[~ids]
 
@@ -115,10 +183,10 @@ y_valid = test[:,classix]
 
 
 model = MLPRegressor(
-        hidden_layer_sizes=(64,128,),  activation='relu', solver='adam', alpha=0.001, batch_size='auto',
+        hidden_layer_sizes=(32,64,),  activation='relu', solver='adam', alpha=0.001, batch_size='auto',
         learning_rate='constant', learning_rate_init=0.0001, power_t=0.5, max_iter=1000, shuffle=True,
         random_state=9, tol=0.0001, verbose=True, warm_start=False, momentum=0.9, nesterovs_momentum=True,
-        early_stopping=False, validation_fraction=0.1, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
+        early_stopping=False, validation_fraction=0.3, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
 
 model.fit(X_train,y_train)
 
@@ -214,7 +282,7 @@ X_filled = X_filled.replace({'\.': ','}, regex=True)
 #model.fit(X_train, y_train, epochs=100, verbose=1)
 
 
-seed = 7
+seed = 9
 np.random.seed(seed)
 
 rmsprop = RMSprop(lr=0.0001)
@@ -223,20 +291,19 @@ sgd=SGD(lr=0.1)
 #kfold = StratifiedKFold(n_splits=5, shuffle=True, random_state=seed)
 #for train, test in kfold.split(X, y):
 model = Sequential()
-model.add(Dense(64, input_dim=22, activation='relu')) #64
+model.add(Dense(64, input_dim=28, activation='relu', kernel_initializer='normal')) #22 #64
 model.add(Dropout(0.3)) #0.3
-model.add(Dense(128, activation='relu')) #128
-model.add(Dropout(0.4)) #0.3
-model.add(Dense(150, activation='relu')) #150
-model.add(Dropout(0.4)) #0.3
-#model.add(Dense(250, activation='relu'))
-#model.add(Dropout(0.3))
-model.add(Dense(1))
-model.compile(optimizer='rmsprop', loss='mse', metrics=['mae']) # optimizer=sgd
-model.fit(X_train, y_train, epochs=400, verbose=1)
+model.add(Dense(128, activation='relu', kernel_initializer='normal')) #128
+model.add(Dropout(0.3)) #0.3
+model.add(Dense(150, activation='relu', kernel_initializer='normal')) #150
+model.add(Dropout(0.3)) #0.3
+model.add(Dense(1, kernel_initializer='normal'))
+model.compile(optimizer='rmsprop', loss='mean_squared_error')#, metrics=['mae']) # optimizer=sgd
+#model.summary()
 
+model.fit(X_train, y_train, epochs=300, verbose=1)
 
-factor = 1.3
+factor = 1.4
 
 reality = y_test
 predict = model.predict(X_test)
@@ -265,13 +332,13 @@ rmse = sqrt(mean_squared_error(reality, predict*factor))
 print('RMSE = ' + str(rmse))
 
 
-loss, acc = model.evaluate(X_train, y_train,  verbose=0)
-print('The RMSE on the training set is ',(loss),' ',(acc)) #0.78
+loss = model.evaluate(X_train, y_train,  verbose=0)
+print('The RMSE on the training set is ',(loss)) #0.78
 
-loss, acc = model.evaluate(X_test, y_test,  verbose=0)
-print('The RMSE on the testing set is ',(loss),' ',(acc)) #1.05
-loss, acc = model.evaluate(X_valid, y_valid,  verbose=0)
-print('The RMSE on the validation set is ',(loss),' ',(acc)) #1.06
+loss = model.evaluate(X_test, y_test,  verbose=0)
+print('The RMSE on the testing set is ',(loss)) #1.05
+loss = model.evaluate(X_valid, y_valid,  verbose=0)
+print('The RMSE on the validation set is ',(loss)) #1.06
 
 
 
@@ -293,9 +360,51 @@ data_test = data_test.drop('ciwcH20', 1)
 data_test = data_test.drop('clwcH20', 1)
 data_test = data_test.drop('nH20', 1)
 
+# Add categorical features
+encoder = LabelEncoder()
+encoder.fit(data_test['ddH10_rose4'])
+vent = encoder.transform(data_test['ddH10_rose4'])
+vent = np_utils.to_categorical(vent)
+vent = pd.DataFrame(vent)
+vent.columns = ['vent1', 'vent2', 'vent3', 'vent4']
+lat = []
+lon = []
+with tqdm(total=data_test.shape[0]) as pbar:
+    for each in data_test['insee']:
+        if each == 6088001:
+            lat.append(43.66510)
+            lon.append(7.2133184)
+        elif each == 31069001:
+            lat.append(43.63799)
+            lon.append(1.3719825)
+        elif each == 33281001:
+            lat.append(44.83137)
+            lon.append(-0.6920608)
+        elif each == 35281001:
+            lat.append(48.06560)
+            lon.append(-1.7232451)
+        elif each == 59343001:
+            lat.append(50.57178)
+            lon.append(3.1060870)
+        elif each == 67124001:
+            lat.append(48.53943)
+            lon.append(7.6280226)
+        elif each == 75114001:
+            lat.append(48.82231)
+            lon.append(2.3378563)
+        else:
+            print("ERROR")
+            break
+        pbar.update()
+print(len(lat) == len(lon) == len(data_test['insee']))
+latlon = np.vstack((lat,lon)).T
+latlon = pd.DataFrame(latlon)
+latlon.columns = ['lat', 'lon']
+data_test = pd.concat([data_test, latlon, vent])
 
 
 data_test = data_test.select_dtypes(exclude=['object'])
+
 data_test.fillna(0,inplace=True)
 
 th2 = np.array(data_test['tH2'], dtype=pd.Series)
@@ -307,11 +416,8 @@ m_test = np.matrix(data_test)
 data_test = pd.DataFrame(scale_x.transform(m_test), columns = col_X)
 data_test = np.array(data_test)
 
-predict = model.predict(data_test)
+predict = model.predict(data_test) * factor
 #predict[abs(predict) > 8] = 0
-
-plt.hist(predict*factor)
-plt.show()
 
 X_filled = pd.read_csv("C:/Users/mbriens/Documents/M2/Apprentissage/Projet/GIT/Sakhir/data/test/test_answer_template.csv", sep=";")
 X_filled = X_filled.drop('tH2_obs', 1)
