@@ -237,7 +237,7 @@ model.fit(X_train, y_train, epochs=350, shuffle=True, verbose=1)
 
 factor = 1.3
 
-reality = y_train
+reality = y_test
 predict = model.predict(X_train)
 plt.plot(predict*factor, reality, 'ro')
 plt.xlabel('Predictions')
