@@ -284,15 +284,19 @@ plt.show()
 #y = df['medianValue']
 
 cvError=[]
-evol = np.arange(100, 1501, 100)
+evol = np.arange(0.8,1, 0.025)
 nb = len(evol)
 with tqdm(total=nb) as pbar:
     for param in evol:
-        regr = GradientBoostingRegressor(learning_rate = 0.6,
+        regr = GradientBoostingRegressor(loss = 'huber',
+                                         alpha = 0.9,
+                                         learning_rate = 0.6,
                                          n_estimators = 500,
                                          subsample = 0.9,
-                                         min_samples_leaf = param,
-                                         random_state = 321, verbose = 0)
+                                         min_samples_leaf = 450,
+                                         min_samples_split = param,
+                                         max_depth = 6,
+                                         random_state = 543, verbose = 0)
         rmse = sqrt(-np.mean(cross_val_score(regr, X_train, y_train, cv=3, scoring = 'neg_mean_squared_error')))
         print('RMSE : ',rmse)
         cvError.append(rmse)
@@ -302,18 +306,11 @@ plt.plot(evol, cvError)
 plt.title("Gradient Boosting - param evol")
 plt.show()
 
-#subsample :
-#evol = [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
-#cvError = [1.6828893312163768,1.2515550685881314,1.2187081498582804,1.1903681738687104,1.1725683464470391,1.1663259610664594,1.160182406692401,1.1501544310895295,1.1563619766601851]
-
-#min_samples_leaf :
-#evol = [10,20,30,40,50,60,70,80,90,100]
-#cvError = [1.1525818413103583, 1.1507860226217055, 1.1473798630381735, 1.1446122474145521, 1.1438359833464806, 1.1444849198751834, 1.1404409339903856, 1.1420589121180544, 1.141437872365891, 1.1392466590149521]
-
+evol = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.925,  0.95 ,  0.975]
+cvError = [1.1265735848569038, 1.1257992678424524, 1.1256909646533102, 1.125807491698492, 1.1194420022694758, 1.121527637689646, 1.119269411973136, 1.1157036622734708, 1.114032001794555, 1.1152142423015106, 1.1149207152117804, 1.1146013933516234]
 
 
 #GradientBoostingRegressor(loss='ls', # ['ls', 'lad', 'huber', 'quantile']
-#                          max_depth=3,
 #                          alpha=0.9, # only if loss='huber' or loss='quantile'
 #                          random_state=321, verbose=0)
 
@@ -333,7 +330,7 @@ nb = len(evol)
 with tqdm(total=nb) as pbar:
     for param in evol:
         regr = SGDRegressor(loss = param,
-                            verbose = 0)
+                            verbose = 3)
         rmse = sqrt(-np.mean(cross_val_score(regr, X_train, y_train, cv=3, scoring = 'neg_mean_squared_error')))
         print('RMSE : ',rmse)
         cvError.append(rmse)
@@ -383,7 +380,8 @@ plt.plot(range(len(evol1)), cvError1)
 plt.title("SVR - param evol")
 plt.show()
 
-#best_param = ?? (minimize cvError MSE)
+best_param = param
+
 
 cvError2=[]
 evol2 = np.arange()
