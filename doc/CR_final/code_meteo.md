@@ -2246,10 +2246,16 @@ print('time enlapsed : ', int((time()-t0)/60), 'min')
 
 ## Autres méthodes envisagées
 
-LSTM, effets mixtes, meilleure hyperparamétrisation des méthodes, deep learning plus gros, tensorflow, meilleur stacking (avec quelques variables explicatives réutilisées) ...
+- Mettre en place un modèle 'Long Short-Term Memory', pour prendre en considértion la séquence des observations : les observations se répètent sur 36 échéances, ce qui peut correspondre au cadre d'application d'un modèle LSTM).
+- Améliorer hyperparamétrisation des méthodes (tests exhaustifs avec GridSearchCV par exemple)
+- Rechercher un meilleur stacking (soit avec un autre modèle de stacking, ou bien avec quelques variables explicatives réutilisées)
 
-De manière générale, le point à renforcer est une meilleure gestion des variables d'échéances, plus de temps sur le deep learning, problème avec la suppression des valeurs aberrantes, autres méthodes plus efficaces d'imputation des valeurs manquantes.
+De manière générale, le point à renforcer est d'améliorer la gestion des variables d'échéances (qui signifie que certaines observations sont dépendentes entre elles). Il aurait été intéressant de passer plus de temps sur le deep learning. D'un autre point de vue, il aurait été appréciable de rechercher davantage de méthodes d'imputation de valeurs manquantes pour parvenir à une option plus efficace que l'imputation par moyenne.
 
 ## Problèmes rencontrés
 
-Organisation, alternance, pas tous ensemble, groupe trop gros pour tous travailler correctement et équitablement, méthodes plus complexes sans résultats (rageant), encadrement trop tôt (beaucoup de questions sans réponses), et point utile après la présentation des résultats du challenge pour avoir des astuces pour le futur, stacking peu efficace, manque de pratique sur le deep learning, données étranges (problème des échéances comme dit plus haut) ...
+De nombreux problèmes ont été rencontrés lors de ce projet :
+- Les principaux problèmes ont été d'ordre organisationnel, c'est-à-dire qu'il a été parfois difficile de se retrouver pour avancer sur le sujet. Cela est dû à l'alternance, puisque nous n'étions pas toujours ensemble. De manière plus générale, nous étions un tros gros groupe pour travailler tous correctement et équitablement.
+- La majeure partie des méthodes plus complexes testées (deep learning, régression à effets mixtes, imputations MICE par exemple) n'ont pas été a la hauteur de nos espérances, ce qui est normal, mais peut être décevant.
+- L'encadrement s'est effectué trop tôt dans la chronologie du projet, et à terme nous avons eu beaucoup de questions sans réponse.
+- Il aurait été très utile de faire un point après la présentation des résultats du challenge pour avoir des astuces pour le futur.
