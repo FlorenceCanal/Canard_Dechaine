@@ -1,6 +1,6 @@
 
 # TEAM SAKHIR
-## Weather forcast - Challenge
+## Challenge - Prédictions Météo France
 
 
 ```python
@@ -30,13 +30,13 @@ t0 = time()
     
 
 L'objectif de ce projet est de prédire correctement les prévisions météorologoiques en matière de températures, et ce dans 7 grandes villes de France.
-Pour ce faire, il est possible d'appliquer des méthodes d'apprentissage automatique, qui permettent d'étudier finement les liens entre les variables à disposition, et la température à prédire, afin d'obtenir la prédiction la plus fiable possible.
+Pour ce faire, il est possible d'appliquer des méthodes d'apprentissage automatique, qui permettent d'étudier finement les liens entre les variables à disposition, et la température, afin d'obtenir la prédiction la plus fiable possible.
 
-Toutes les informations relatives à la compétitions peuvent être trouvées ici : https://defibigdata2018.insa-toulouse.fr/
+Toutes les informations relatives à la compétition peuvent être trouvées ici : https://defibigdata2018.insa-toulouse.fr/
 
 Nous avons testé de nombreuses méthodes, tant au niveau de l'imputation des valeurs manquantes, de la suppression des valeurs extrêmes (outliers), que de la modélisation des méthodes de prédictions. Nous avons utilisé à la fois R et Python.
 
-Les méthodes que nous avons retenues à terme ont été codées sur Python, et c'est ce pourquoi le rapport final prends cette forme. Cependant des commentaires préciserons certaines autres méthodes qui ont été tentées en parallèle de celles codées ici.
+Les méthodes que nous avons retenues à terme ont été codées sur Python, et c'est ce pourquoi le rapport final prend la forme d'un notebook Python. Cependant des commentaires préciserons certaines autres méthodes qui ont été implémentées en plus de celles codées ici.
 
 ## I. Load data 
 
@@ -232,7 +232,7 @@ df.head()
 
 
 
-Avant de faire quoique ce soit de plus, il est très important de visualiser les données à notre disposition, pour mieux en comprendre le sens. Cela peut permettre de commencer à appréhender les liens entre différentes variables, ainsi que de mettre en avant quelques variables susceptibmles d'avoir davantage de sens que d'autres.
+Avant de faire quoique ce soit de plus, il est très important de visualiser les données à notre disposition, pour mieux en comprendre le sens. Cela peut permettre de commencer à appréhender les liens entre différentes variables, ainsi que de mettre en avant quelques variables susceptibles d'être plus pertinentes que d'autres.
 
 Le code suivant permet de visualiser quelques variables les unes par rapport aux autres. Les données, tout comme les variables, étant assez nombreuses, le code n'a pas été exécuté ici. De plus, la majeure partie du travail d'exploration des données a été fait sur R.
 
@@ -251,15 +251,15 @@ Le code suivant permet de visualiser quelques variables les unes par rapport aux
 # g.set(xticklabels=[])
 ```
 
-Nous remarquons d'aillieurs que les variables 'tH2', et 'tH2_obs' sont très corrélées. Cette information est capitale, puisque c'estr  la variable 'tH2' que nous souhaitons prédire. En réalité, la variable 'tH2_obs' correspond à la prédiction effectuée par l'un des modèle de Météo France. La prédiction que nous devons effectuer doit améliorer la précision de ce modèle.
+Nous avons pu remarquer que les variables 'tH2', et 'tH2_obs' sont très corrélées. Cette information est capitale, puisque c'est  la variable 'tH2' que nous souhaitons prédire. En réalité, la variable 'tH2_obs' correspond à la prédiction effectuée par l'un des modèles de Météo France. La prédiction que nous devons effectuer doit permettre d'améliorer la précision de ce modèle.
 
 C'est d'aillieurs ainsi que nous avons pu constater une anomalie au sein des données : nous n'avons que de très rares observations pour les échéances supérieures à 30 dans le jeu d'apprentissage.
 
-Cela a posé quelques problèmes, car nous n'avions pas toujours 36 observations pour un même jour : les informations étaient parfois tronquées. Lorsque nous avons tenté de mettre en place une régression linéaire à effets mixtes sur R (par localisation, et par suite d'échéances), il n'a pas été possible de l'appliquer sur les données, a cause de ce manque d'informations.
+Cela a posé quelques problèmes, car nous n'avions pas toujours 36 observations pour un même jour : les informations étaient parfois tronquées. Lorsque nous avons tenté de mettre en place une régression linéaire à effets mixtes sur R (par localisation, et par suite d'échéances), il n'a pas été possible de l'appliquer correctement sur les données, a cause de ce manque d'informations.
 
 ## II. Add data
 
-Les données dont nous disposons peuvent être modifiées, ou de nouvelles informations peuvent en être déduites. Cela pouvant apporter de la précision lors de la modélisation, nous avons décidé d'apporter des modifications, telles que l'ajout d'informations relatives à la saison de l'observation, ou de l'emplacement des villes étudiées, ainsi que quelques informations météorologiques sur celles-ci.
+Les données dont nous disposons peuvent être modifiées, ou de nouvelles informations peuvent en être déduites. Cela pouvant améliorer la précision lors de la modélisation, nous avons décidé d'apporter des modifications, telles que l'ajout d'informations relatives à la saison de l'observation, ou de l'emplacement des villes étudiées, ainsi que quelques informations météorologiques sur celles-ci.
 
 De plus, certaines variables (ici ne restent que la saison et l'année, mais dans le cas ou l'emplacement des villes n'aurait pas été recodé par les latitudes et longitudes de celles-ci, la variable du code insee des villes aurait été concernée également) ne sont pas continues. Afin de pouvoir traiter les variables qualitatives, il est nécessaire de les binariser : c'est-à-dire créer, pour chaque variable, autant de nouvelles variables que de modalités, et de les remplir par des valeurs binaires. La fonction 'get_dummies' permet d'appliquer facilement ces modifications, pour éviter tout problème de confusion par la suite.
 
@@ -468,9 +468,9 @@ df.head()
 
 De nombreuses valeurs manquantes ont été observées dans les données, tant dans le jeu d'apprentissage que dans le jeu de test. Certaines variables sont plus concernées que d'autres. C'est notamment le cas de la variable 'capeinsSOL0', pour laquelle on observe un fort taux de valeurs manquantes, au sein de l'échantillon d'apprentissage.
 
-Même s'il est question de réfléchir à une méthode pour imputer les valeurs manquantes, remplacer autant de valeurs manquantes pourrait créer un biais dans nos données. Dans un premier temps, nous avons donc décidé de retirer toutes les variables ayant plus de 5% de valeurs manquantes. Nous avons également utilisé le package 'MICE' de R, afin d'imputer les variables.
+Même s'il est question de réfléchir à une méthode pour imputer les valeurs manquantes, remplacer autant de valeurs manquantes pourrait créer un biais dans nos données. Dans un premier temps, nous avons donc décidé de retirer toutes les variables ayant plus de 5% de valeurs manquantes, sans tenter de les imputer. Nous avons également utilisé le package 'MICE' de R, afin d'imputer le observations manquantes des variables restantes.
 
-Plusieurs méthodes (de nombreuses méthodes d'imputations sont disponibles à partir du package 'MICE') ont été testées, telles que les méthodes 'pmm' (predictive mean matching), ou 'cart' (basée sur des arbres de décision). Finalement, il semble que des résultats très satisfaisants soient obtenus à partir d'une simple imputation par moyenne. C'est donc ce qui est effectué dans le code suivant (l'imputation est effectuée conjointement sur l'échantillon d'apprentissage et de test, pour plus de cohérence).
+Plusieurs méthodes (de nombreuses méthodes d'imputations sont disponibles à partir du package 'MICE') ont été testées, telles que les méthodes 'pmm' (predictive mean matching), ou 'cart' (basée sur des arbres de décision). Finalement, il semble que des résultats satisfaisants soient obtenus à partir d'une simple imputation par moyenne. C'est donc ce qui est effectué dans le code suivant (l'imputation est effectuée conjointement sur l'échantillon d'apprentissage et de test, pour plus de cohérence).
 
 
 ```python
@@ -782,9 +782,9 @@ Soit l'idée est critiquable, soit la méthode a été mal implémentée. Quoiqu
 
 ## VI. Split train & validation sets
 
-Avant de passer à la modélisation, il est indispensable de procéder à la création d'un échantillon d'apprentissage, et d'un échantillon de validation, afin d'éviter tout surapprentissage, et pour pouvoir tester nos modèle sur des données, pour avoir un aperçu de la précision de ces modèles.
+Avant de passer à la modélisation, il est indispensable de procéder à la création d'un échantillon d'apprentissage, et d'un échantillon de validation. Cela permet d'éviter tout surapprentissage, et de pouvoir tester nos modèles sur des données, pour avoir un aperçu de la précision de ces modèles (avant la soumission des résultats).
 
-Lors de la paramétrisation des différents modèles présentés ci-dessous, nous avons utilisé la validation croisée (5-fold la plupart du temps), afin de s'assurer que les mesures de précisions n'étaient pas trop dépendantes de l'échantillonnage, et ainsi, de s'assurer d'une certaine robustesse du modèle.
+Lors de la paramétrisation des différents modèles présentés ci-dessous, nous avons utilisé la validation croisée (5-fold la plupart du temps), afin de s'assurer que les mesures de précisions n'étaient pas trop dépendantes de l'échantillonnage, et ainsi, de s'assurer d'une certaine robustesse des modèles.
 
 
 ```python
@@ -982,9 +982,9 @@ print('Ready to start ML part !')
 
 Comme l'indique ce message apparu dans le code, les données sont fin prêtes : nous pouvons maintenant passer à l'étape de modélisation.
 
-Avant d'entammer cette partie, il est nécessaire de préciser qu'en plus de la validation croisée (comme précisé plus haut), le code utilisé pour obtenir les paramètres choisis ici est différent du code présenté ici. Lors de l'étape de paramétrisation des modèles, nous avons par exemple utilisé les méthodes de 'GridSearchCV' (disponible à partir du package 'SKlearn'). Selon les méthodes en question, cette solution a pu s'avérer beaucoup trop gourmande en termes de temps de calcul. Par conséquents, la solution a été, dans la plupart des cas, de rechercher une a une la valeur idéale de chacun des paramètres par dichotomie, en fixant tous les autres paramètres. Cette méthode n'est pas parfaite, dans le cas d'effet conjoint de plusieurs paramètres sur la précision, mais cela nous a semblé être le compromis idéal, compte-tenu du temps alloué pour mener à bien ce projet.
+Avant d'entammer cette partie, il est nécessaire de préciser qu'en plus de la validation croisée (comme précisé plus haut), le code utilisé pour obtenir les paramètres choisis ici est différent du code présenté ici. Lors de l'étape de paramétrisation des modèles, nous avons par exemple utilisé la solution 'GridSearchCV' (disponible à partir du package 'SKlearn'). Selon les méthodes en question, cette solution a pu s'avérer beaucoup trop gourmande en termes de temps de calcul. Par conséquents, la solution adoptée a été, dans la plupart des cas, de rechercher une a une la valeur idéale de chacun des paramètres par dichotomie, en fixant tous les autres paramètres. Cette méthode n'est pas parfaite, dans le cas d'effet conjoint de plusieurs paramètres sur la précision, mais cela nous a semblé être le compromis idéal, compte-tenu du temps alloué pour mener à bien ce projet.
 
-Il est également nécessaire de préciser, comme il a été abordé plus haut, que les méthodes présentes dans le code suivant ne forment pas une liste exhaustive des méthodes qui ont pu être implémentées lors de ce projet. La première approche a été d'utiliser une régression linéaire, puis nous avons utilisé des variantes du modèle linéaire, comme le modèle à effets mixtes, la régression Lasso (L1 regularization), la régression Ridge (L2 regularization), l'arbre de décision. D'autre part, plusieurs méthodes renseignées ci-dessous ont été également été implémentées en R.
+Il est également nécessaire de préciser, comme il a été abordé plus haut, que les méthodes présentes dans le code suivant ne forment pas une liste exhaustive des méthodes qui ont pu être implémentées lors de ce projet. La première approche a été d'utiliser une régression linéaire, puis nous avons utilisé des variantes du modèle linéaire, comme le modèle à effets mixtes, la régression Lasso (L1 regularization), ou bien la régression Ridge (L2 regularization). Nous avons également implémenté un modèle d'arbre de décision. D'autre part, plusieurs méthodes renseignées ci-dessous ont été également été implémentées en R, comme la forêt aléatoire, le GradientBoosting, ou les réseaux de neurones.
 
 ## VII. ML part 1 : Random Forest
 
@@ -2256,6 +2256,6 @@ De manière générale, le point à renforcer est d'améliorer la gestion des va
 
 De nombreux problèmes ont été rencontrés lors de ce projet :
 - Les principaux problèmes ont été d'ordre organisationnel, c'est-à-dire qu'il a été parfois difficile de se retrouver pour avancer sur le sujet. Cela est dû à l'alternance, puisque nous n'étions pas toujours ensemble. De manière plus générale, nous étions un tros gros groupe pour travailler tous correctement et équitablement.
-- La majeure partie des méthodes plus complexes testées (deep learning, régression à effets mixtes, imputations MICE par exemple) n'ont pas été a la hauteur de nos espérances, ce qui est normal, mais peut être décevant.
-- L'encadrement s'est effectué trop tôt dans la chronologie du projet, et à terme nous avons eu beaucoup de questions sans réponse.
+- La majeure partie des méthodes plus complexes testées (deep learning, régression à effets mixtes, imputations MICE par exemple) n'ont pas été a la hauteur de nos espérances, ce qui est peut-être normal, mais décevant.
+- L'encadrement s'est effectué trop tôt dans la chronologie du projet, et à terme nous avons eu beaucoup d'interrogations.
 - Il aurait été très utile de faire un point après la présentation des résultats du challenge pour avoir des astuces pour le futur.
